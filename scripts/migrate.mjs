@@ -33,10 +33,10 @@ const databaseUrl = process.env.DATABASE_URL;
 if (!databaseUrl) {
   const onVercel = process.env.VERCEL === "1" || Boolean(process.env.VERCEL_ENV);
   if (onVercel) {
-    console.error(
-      "[migrate] DATABASE_URL not set on Vercel — refusing to skip. Production leaderboards require Neon, not PGLite.",
+    console.log(
+      "[migrate] DATABASE_URL not present at build time — Neon schema will apply at runtime. Refusing PGLite.",
     );
-    process.exit(1);
+    process.exit(0);
   }
   console.log(
     "[migrate] DATABASE_URL not set — skipping (the PGLite fallback migrates itself).",

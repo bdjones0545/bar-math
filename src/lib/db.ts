@@ -48,6 +48,7 @@ const globalRef = globalThis as typeof globalThis & {
   __pgSqlPromise__?: Promise<Sql>;
   __pgliteInstance__?: Promise<import("@electric-sql/pglite").PGlite>;
   __pgliteMigrateChain__?: Promise<void>;
+  __neonMigrateChain__?: Promise<void>;
 };
 
 /**
@@ -85,8 +86,46 @@ function toSql(run: Run): Sql {
   return sql;
 }
 
+function migrationFiles(): Record<string, string> {
+  return import.meta.glob("/migrations/*.sql", {
+    query: "?raw",
+    import: "default",
+    eager: true,
+  }) as Record<string, string>;
+}
+
+function inspectNeonUrl(raw: string): { host: string; database: string; user: string } {
+  const parsed = new URL(raw);
+  return {
+    host: parsed.hostname,
+    database: decodeURIComponent(parsed.pathname.replace(/^\//, "")).split("/")[0],
+    user: decodeURIComponent(parsed.username || ""),
+  };
+}
+
+function assertBarMathNeon(raw: string): void {
+  const onVercel = process.env.VERCEL === "1" || Boolean(process.env.VERCEL_ENV);
+  if (!onVercel) return;
+  const { host, database, user } = inspectNeonUrl(raw);
+  console.log(`[db] neon host ${host} db ${database} user ${user || "(none)"}`);
+  if (!host.endsWith(".neon.tech")) {
+    throw new Error("DATABASE_URL is not a Neon-managed *.neon.tech endpoint");
+  }
+  if (database !== "neondb") {
+    throw new Error(`DATABASE_URL database is ${database}, expected neondb`);
+  }
+  const markers = ["withered-dew", "axzrmbbk", "bitter-bar-80085503"];
+  if (!markers.some((m) => host.includes(m))) {
+    throw new Error(
+      "DATABASE_URL host does not match dedicated BAR MATH Neon project bitter-bar-80085503",
+    );
+  }
+}
+
 function createNeonSql(): Promise<Sql> {
   globalRef.__pgSqlPromise__ ??= (async () => {
+    if (!databaseUrl) throw new Error("DATABASE_URL missing on Neon path");
+    assertBarMathNeon(databaseUrl);
     // Regular Postgres driver: node-postgres (`pg`) — works directly with Neon's
     // pooled endpoint. One pool per process; warm serverless instances reuse it.
     const { Pool, types } = await import("pg");
@@ -94,6 +133,55 @@ function createNeonSql(): Promise<Sql> {
     types.setTypeParser(OID_DATE, identity);
     types.setTypeParser(OID_INTERVAL, identity);
     const pool = new Pool({ connectionString: databaseUrl });
+
+    const migrate = async (): Promise<void> => {
+      const client = await pool.connect();
+      try {
+        const live = await client.query("select current_database() as db");
+        const liveDb = live.rows[0]?.db;
+        console.log(`[db] connected database ${liveDb}`);
+        if (liveDb !== "neondb") {
+          throw new Error(`connected database is ${liveDb}, expected neondb`);
+        }
+        await client.query(
+          "create table if not exists _migrations (name text primary key, applied_at timestamptz not null default now())",
+        );
+        const migrations = migrationFiles();
+        const doneRows = await client.query<{ name: string }>("select name from _migrations");
+        const done = doneRows.rows.map((r) => r.name);
+        for (const { name, path } of pendingMigrations(Object.keys(migrations), done)) {
+          try {
+            await client.query("BEGIN");
+            await client.query(migrations[path]);
+            await client.query("INSERT INTO _migrations (name) VALUES ($1)", [name]);
+            await client.query("COMMIT");
+            console.log(`[db] applied ${name}`);
+          } catch (err) {
+            try {
+              await client.query("ROLLBACK");
+            } catch {
+              // keep original
+            }
+            throw err;
+          }
+        }
+        const tables = await client.query<{ table_name: string }>(
+          `select table_name from information_schema.tables
+           where table_schema = 'public' and table_name in ('lb_rounds','lb_scores','lb_rate')
+           order by table_name`,
+        );
+        const names = tables.rows.map((r) => r.table_name);
+        console.log(`[db] leaderboard tables: ${names.join(",") || "(none)"}`);
+      } finally {
+        client.release();
+      }
+    };
+    const pass = (globalRef.__neonMigrateChain__ ?? Promise.resolve())
+      .catch(() => undefined)
+      .then(migrate);
+    globalRef.__neonMigrateChain__ = pass;
+    await pass;
+
     return toSql(async <T>(text: string, params: unknown[]) => {
       const res = await pool.query(text, params);
       return res.rows as T[];
