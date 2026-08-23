@@ -15,9 +15,18 @@ import {
   type LbPeriod,
 } from "./rules.ts";
 
+function redactDbError(err: unknown): string {
+  const raw = err instanceof Error ? err.message : String(err);
+  return raw.replace(/postgres(?:ql)?:\/\/\S+/gi, "postgres://[redacted]");
+}
+
 function requireDurableDb(): { ok: false; error: string } | null {
   const onVercel = process.env.VERCEL_ENV === "production" || process.env.VERCEL === "1";
-  if (onVercel && !process.env.DATABASE_URL?.trim()) {
+  const present = Boolean(process.env["DATABASE_URL"]?.trim());
+  if (onVercel && !present) {
+    console.warn(
+      `[lb] DATABASE_URL missing at runtime vercel=${process.env.VERCEL || "0"} env=${process.env.VERCEL_ENV || "none"}`,
+    );
     return { ok: false, error: "unavailable" };
   }
   return null;
@@ -75,7 +84,8 @@ export async function startRoundRow(input: {
       values (${roundId}, ${hashToken(token)}, ${input.mode}, ${input.difficulty}, ${input.clientId})
     `;
     return { ok: true, roundId, token };
-  } catch {
+  } catch (err) {
+    console.error("[lb] startRound failed:", redactDbError(err));
     return { ok: false, error: "unavailable" };
   }
 }
@@ -179,7 +189,8 @@ export async function submitRoundRow(input: {
       score: input.score,
       correct: input.correct,
     };
-  } catch {
+  } catch (err) {
+    console.error("[lb] submitRound failed:", redactDbError(err));
     return { ok: false, error: "unavailable" };
   }
 }
@@ -278,7 +289,8 @@ export async function listBoard(input: {
     }
 
     return { ok: true, rows: board, you, generatedAt: new Date().toISOString() };
-  } catch {
+  } catch (err) {
+    console.error("[lb] listBoard failed:", redactDbError(err));
     return { ok: false, error: "unavailable" };
   }
 }
