@@ -18,6 +18,17 @@ import { dirname, join } from "node:path";
 import pg from "pg";
 import { pendingMigrations } from "./migration-plan.mjs";
 
+const BAR_MATH_HOST_MARKERS = ["withered-dew", "axzrmbbk", "bitter-bar-80085503"];
+const EXPECTED_DB = "neondb";
+
+function inspectDatabaseUrl(raw) {
+  const parsed = new URL(raw);
+  const host = parsed.hostname;
+  const database = decodeURIComponent(parsed.pathname.replace(/^\//, "")).split("/")[0];
+  const user = decodeURIComponent(parsed.username || "");
+  return { host, database, user };
+}
+
 const databaseUrl = process.env.DATABASE_URL;
 if (!databaseUrl) {
   const onVercel = process.env.VERCEL === "1" || Boolean(process.env.VERCEL_ENV);
@@ -33,12 +44,36 @@ if (!databaseUrl) {
   process.exit(0);
 }
 
+let identity;
 try {
-  const host = new URL(databaseUrl).hostname;
-  console.log(`[migrate] using host ${host}`);
+  identity = inspectDatabaseUrl(databaseUrl);
 } catch {
   console.error("[migrate] DATABASE_URL is not a valid URL.");
   process.exit(1);
+}
+
+console.log(
+  `[migrate] using host ${identity.host} db ${identity.database} user ${identity.user || "(none)"}`,
+);
+
+const onVercel = process.env.VERCEL === "1" || Boolean(process.env.VERCEL_ENV);
+if (onVercel) {
+  if (!identity.host.endsWith(".neon.tech")) {
+    console.error("[migrate] host is not a Neon-managed *.neon.tech endpoint — refusing to migrate.");
+    process.exit(1);
+  }
+  if (identity.database !== EXPECTED_DB) {
+    console.error(`[migrate] database is ${identity.database}, expected ${EXPECTED_DB} — refusing to migrate.`);
+    process.exit(1);
+  }
+  const hostMatch = BAR_MATH_HOST_MARKERS.some((m) => identity.host.includes(m));
+  if (!hostMatch) {
+    console.error(
+      "[migrate] host does not match dedicated BAR MATH Neon project bitter-bar-80085503 / branch br-withered-dew-axzrmbbk — refusing to migrate.",
+    );
+    process.exit(1);
+  }
+  console.log("[migrate] BAR MATH Neon identity check passed.");
 }
 
 const migrationsDir = join(dirname(fileURLToPath(import.meta.url)), "..", "migrations");
@@ -60,6 +95,14 @@ async function main() {
   const pool = new pg.Pool({ connectionString: databaseUrl, max: 1 });
   const client = await pool.connect();
   try {
+    const live = await client.query("select current_database() as db, current_user as usr");
+    const liveDb = live.rows[0]?.db;
+    const liveUser = live.rows[0]?.usr;
+    console.log(`[migrate] connected db ${liveDb} user ${liveUser}`);
+    if (onVercel && liveDb !== EXPECTED_DB) {
+      throw new Error(`connected database is ${liveDb}, expected ${EXPECTED_DB}`);
+    }
+
     await client.query(
       "CREATE TABLE IF NOT EXISTS _migrations (name TEXT PRIMARY KEY, applied_at TIMESTAMPTZ NOT NULL DEFAULT now())",
     );
@@ -87,6 +130,16 @@ async function main() {
       }
       console.log(`[migrate] applied ${name}`);
       count += 1;
+    }
+    const tables = await client.query(
+      `select table_name from information_schema.tables
+       where table_schema = 'public' and table_name in ('lb_rounds','lb_scores','lb_rate')
+       order by table_name`,
+    );
+    const names = tables.rows.map((r) => r.table_name);
+    console.log(`[migrate] leaderboard tables: ${names.join(",") || "(none)"}`);
+    if (onVercel && (names.length !== 3 || !["lb_rate", "lb_rounds", "lb_scores"].every((t) => names.includes(t)))) {
+      throw new Error("leaderboard tables missing after migrate");
     }
     console.log(count ? `[migrate] done — ${count} migration(s) applied.` : "[migrate] up to date.");
   } finally {
