@@ -3,6 +3,7 @@ import {
   Dumbbell,
   Eye,
   GraduationCap,
+  PersonStanding,
   Timer,
   Volume2,
   VolumeX,
@@ -108,19 +109,28 @@ export function HomeScreen() {
 
       <div className="mt-6 max-w-md mx-auto w-full">
         <p className="text-[11px] uppercase tracking-[0.18em] text-muted">Tools & training</p>
-        <button
-          type="button"
-          onClick={() => setScreen("convert")}
-          className="mt-3 w-full text-left rounded-3xl border border-border bg-surface p-4 hover:bg-surface-2 transition-colors duration-150"
-        >
-          <ArrowLeftRight className="size-5 text-accent" />
-          <p className="mt-3 font-display text-base leading-tight tracking-wide text-fg">
-            Conversion Measurements
-          </p>
-          <p className="mt-1 text-xs text-muted text-pretty">
-            Convert the measurements athletes use every day.
-          </p>
-        </button>
+        <div className="mt-3 grid grid-cols-2 gap-3">
+          <button
+            type="button"
+            onClick={() => setScreen("convert")}
+            className="text-left rounded-3xl border border-border bg-surface p-4 hover:bg-surface-2 transition-colors duration-150 min-h-28"
+          >
+            <ArrowLeftRight className="size-5 text-accent" />
+            <p className="mt-3 font-display text-base leading-tight tracking-wide text-fg">
+              Conversion Measurements
+            </p>
+            <p className="mt-1 text-xs text-muted text-pretty">Convert the measurements athletes use every day.</p>
+          </button>
+          <button
+            type="button"
+            onClick={() => setScreen("anatomy")}
+            className="text-left rounded-3xl border border-border bg-surface p-4 hover:bg-surface-2 transition-colors duration-150 min-h-28"
+          >
+            <PersonStanding className="size-5 text-accent" />
+            <p className="mt-3 font-display text-base leading-tight tracking-wide text-fg">Poke a Muscle</p>
+            <p className="mt-1 text-xs text-muted text-pretty">See the name. Tap the right place.</p>
+          </button>
+        </div>
       </div>
 
       <div className="mt-6 max-w-md mx-auto w-full">

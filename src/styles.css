@@ -316,6 +316,48 @@
     color: var(--color-muted);
     font-weight: 600;
   }
+
+  .anatomy-svg {
+    width: min(100%, 22rem);
+    height: auto;
+    max-height: 58dvh;
+    touch-action: manipulation;
+    overflow: visible;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  .anatomy-body {
+    fill: var(--color-surface-2);
+    stroke: var(--color-border);
+    stroke-width: 1.4;
+    pointer-events: none;
+  }
+
+  .anatomy-muscle {
+    fill: color-mix(in oklab, var(--color-accent) 22%, var(--color-surface));
+    stroke: var(--color-border);
+    stroke-width: 1.3;
+    paint-order: stroke fill;
+    cursor: pointer;
+    transition: fill 120ms ease, stroke 120ms ease;
+  }
+
+  .anatomy-svg.is-rookie .anatomy-muscle {
+    stroke-width: 6;
+    stroke: color-mix(in oklab, var(--color-accent) 35%, var(--color-border));
+  }
+
+  .anatomy-muscle.is-named,
+  .anatomy-muscle.is-reveal {
+    fill: color-mix(in oklab, var(--color-accent) 55%, var(--color-surface));
+    stroke: var(--color-accent);
+  }
+
+  .anatomy-muscle.is-miss {
+    fill: color-mix(in oklab, var(--color-danger) 45%, var(--color-surface));
+    stroke: var(--color-danger);
+  }
 }
 
 @keyframes bm-slide-on {

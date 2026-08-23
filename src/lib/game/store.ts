@@ -36,6 +36,10 @@ function isUnit(v: unknown): v is Unit {
   return v === "lb" || v === "kg";
 }
 
+function asCount(v: unknown, fallback: number): number {
+  return typeof v === "number" && Number.isFinite(v) && v >= 0 ? v : fallback;
+}
+
 let plateSeq = 1;
 
 function newPlate(cents: number): LoadedPlate {
@@ -77,6 +81,10 @@ export interface GameState {
   impact: number;
   roundStartedAt: number;
   eliteRemainingMs: number | null;
+  anatomyCorrect: number;
+  anatomyIncorrect: number;
+  anatomyBestStreak: number;
+  anatomyBestSpeed: number;
 
   hydrateDone: () => void;
   setScreen: (screen: Screen) => void;
@@ -99,6 +107,8 @@ export interface GameState {
   finishSpeed: () => void;
   dismissToast: (id: string) => void;
   resetProgress: () => void;
+  recordAnatomyAnswer: (opts: { hit: boolean; xp: number; streak: number }) => void;
+  setAnatomySpeedBest: (score: number) => void;
 }
 
 const emptySpeed = (): SpeedSession => ({
@@ -186,6 +196,10 @@ export const useGameStore = create<GameState>()(
       impact: 0,
       roundStartedAt: 0,
       eliteRemainingMs: null,
+      anatomyCorrect: 0,
+      anatomyIncorrect: 0,
+      anatomyBestStreak: 0,
+      anatomyBestSpeed: 0,
 
       hydrateDone: () => set({ hydrated: true }),
 
@@ -567,7 +581,27 @@ export const useGameStore = create<GameState>()(
           sidePlates: [],
           feedback: null,
           speed: null,
+          anatomyCorrect: 0,
+          anatomyIncorrect: 0,
+          anatomyBestStreak: 0,
+          anatomyBestSpeed: 0,
         }),
+
+      recordAnatomyAnswer: ({ hit, xp, streak }) => {
+        const s = get();
+        if (hit) {
+          set({
+            anatomyCorrect: s.anatomyCorrect + 1,
+            xp: s.xp + xp,
+            anatomyBestStreak: Math.max(s.anatomyBestStreak, streak),
+          });
+          return;
+        }
+        set({ anatomyIncorrect: s.anatomyIncorrect + 1 });
+      },
+
+      setAnatomySpeedBest: (score) =>
+        set({ anatomyBestSpeed: Math.max(get().anatomyBestSpeed, score) }),
     }),
     {
       name: "bar-math-save",
@@ -597,6 +631,10 @@ export const useGameStore = create<GameState>()(
         achievements: s.achievements,
         tutorialComplete: s.tutorialComplete,
         trainerIndex: s.trainerIndex,
+        anatomyCorrect: s.anatomyCorrect,
+        anatomyIncorrect: s.anatomyIncorrect,
+        anatomyBestStreak: s.anatomyBestStreak,
+        anatomyBestSpeed: s.anatomyBestSpeed,
       }),
       merge: (persisted, current) => {
         const p = (persisted ?? {}) as Partial<GameState>;
@@ -605,6 +643,10 @@ export const useGameStore = create<GameState>()(
           ...p,
           unit: isUnit(p.unit) ? p.unit : current.unit,
           difficulty: isDifficulty(p.difficulty) ? p.difficulty : current.difficulty,
+          anatomyCorrect: asCount(p.anatomyCorrect, current.anatomyCorrect),
+          anatomyIncorrect: asCount(p.anatomyIncorrect, current.anatomyIncorrect),
+          anatomyBestStreak: asCount(p.anatomyBestStreak, current.anatomyBestStreak),
+          anatomyBestSpeed: asCount(p.anatomyBestSpeed, current.anatomyBestSpeed),
         };
       },
     },

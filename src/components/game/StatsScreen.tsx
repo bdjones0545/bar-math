@@ -12,6 +12,10 @@ export function StatsScreen() {
   const longestStreak = useGameStore((s) => s.longestStreak);
   const fastestMs = useGameStore((s) => s.fastestMs);
   const bestSpeedScore = useGameStore((s) => s.bestSpeedScore);
+  const anatomyBestStreak = useGameStore((s) => s.anatomyBestStreak);
+  const anatomyBestSpeed = useGameStore((s) => s.anatomyBestSpeed);
+  const anatomyCorrect = useGameStore((s) => s.anatomyCorrect);
+  const anatomyIncorrect = useGameStore((s) => s.anatomyIncorrect);
   const achievements = useGameStore((s) => s.achievements);
   const level = levelForXp(xp);
   const asked = correct + incorrect;
@@ -53,6 +57,12 @@ export function StatsScreen() {
             value={fastestMs === null ? "—" : `${(fastestMs / 1000).toFixed(2)}s`}
           />
           <Tile label="Speed best" value={String(bestSpeedScore)} />
+          <Tile label="Muscle speed" value={String(anatomyBestSpeed)} />
+          <Tile label="Anatomy streak" value={String(anatomyBestStreak)} />
+          <Tile
+            label="Anatomy hits"
+            value={`${anatomyCorrect}/${anatomyCorrect + anatomyIncorrect || 0}`}
+          />
         </dl>
 
         <h2 className="mt-10 font-display tracking-[0.2em] text-sm text-muted">ACHIEVEMENTS</h2>
