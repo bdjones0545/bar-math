@@ -1,4 +1,5 @@
 import {
+  ArrowLeftRight,
   Dumbbell,
   Eye,
   GraduationCap,
@@ -87,6 +88,7 @@ export function HomeScreen() {
       </div>
 
       <div className="mt-6 grid grid-cols-2 gap-3 max-w-md mx-auto w-full">
+        <p className="col-span-2 text-[11px] uppercase tracking-[0.18em] text-muted">Play</p>
         {MODES.map((m) => {
           const Icon = m.icon;
           return (
@@ -102,6 +104,23 @@ export function HomeScreen() {
             </button>
           );
         })}
+      </div>
+
+      <div className="mt-6 max-w-md mx-auto w-full">
+        <p className="text-[11px] uppercase tracking-[0.18em] text-muted">Tools & training</p>
+        <button
+          type="button"
+          onClick={() => setScreen("convert")}
+          className="mt-3 w-full text-left rounded-3xl border border-border bg-surface p-4 hover:bg-surface-2 transition-colors duration-150"
+        >
+          <ArrowLeftRight className="size-5 text-accent" />
+          <p className="mt-3 font-display text-base leading-tight tracking-wide text-fg">
+            Conversion Measurements
+          </p>
+          <p className="mt-1 text-xs text-muted text-pretty">
+            Convert the measurements athletes use every day.
+          </p>
+        </button>
       </div>
 
       <div className="mt-6 max-w-md mx-auto w-full">
