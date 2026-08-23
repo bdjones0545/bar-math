@@ -64,17 +64,21 @@ export function SettingsScreen() {
                   key={d}
                   type="button"
                   onClick={() => setDifficulty(d)}
+                  aria-pressed={on}
                   className={cn(
                     "w-full text-left rounded-2xl border p-4",
-                    on ? "border-accent bg-surface" : "border-border bg-surface",
+                    on ? "border-accent bg-accent text-accent-fg" : "border-border bg-surface",
                   )}
                 >
                   <p className="font-display text-lg tracking-wide">{meta.name}</p>
-                  <p className="text-sm text-muted mt-1">{meta.detail}</p>
+                  <p className={cn("text-sm mt-1", on ? "text-accent-fg/80" : "text-muted")}>
+                    {meta.detail}
+                  </p>
                 </button>
               );
             })}
           </div>
+          <p className="mt-3 text-xs text-subtle">Saved on this device.</p>
         </section>
 
         <section>

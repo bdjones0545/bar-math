@@ -26,6 +26,16 @@ import type {
 } from "./types";
 import { SAVE_VERSION } from "./types";
 
+const DIFFICULTIES: Difficulty[] = ["rookie", "athlete", "coach", "elite"];
+
+function isDifficulty(v: unknown): v is Difficulty {
+  return DIFFICULTIES.includes(v as Difficulty);
+}
+
+function isUnit(v: unknown): v is Unit {
+  return v === "lb" || v === "kg";
+}
+
 let plateSeq = 1;
 
 function newPlate(cents: number): LoadedPlate {
@@ -213,10 +223,14 @@ export const useGameStore = create<GameState>()(
 
       setDifficulty: (difficulty) => {
         const s = get();
-        set({ difficulty });
         if (s.screen === "play" && s.mode !== "trainer") {
-          set(beginRound({ ...get(), difficulty } as GameState, s.mode));
+          set({
+            difficulty,
+            ...beginRound({ ...s, difficulty } as GameState, s.mode),
+          });
+          return;
         }
+        set({ difficulty });
       },
 
       setMuted: (muted) => set({ muted }),
@@ -584,6 +598,15 @@ export const useGameStore = create<GameState>()(
         tutorialComplete: s.tutorialComplete,
         trainerIndex: s.trainerIndex,
       }),
+      merge: (persisted, current) => {
+        const p = (persisted ?? {}) as Partial<GameState>;
+        return {
+          ...current,
+          ...p,
+          unit: isUnit(p.unit) ? p.unit : current.unit,
+          difficulty: isDifficulty(p.difficulty) ? p.difficulty : current.difficulty,
+        };
+      },
     },
   ),
 );
