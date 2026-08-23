@@ -1,12 +1,15 @@
 import { useEffect, useState } from "react";
-import { ChevronLeft, Flame } from "lucide-react";
+import { ChevronLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { BodyFigure } from "@/components/anatomy/BodyFigure";
+import { AnatomyLab } from "@/components/anatomy/AnatomyLab";
 import { useGameStore } from "@/lib/game/store";
-import { DIFFICULTY_META, xpForCorrect } from "@/lib/game/progression";
+import { xpForCorrect } from "@/lib/game/progression";
 import { sfx } from "@/lib/game/audio";
 import { cn } from "@/lib/utils";
 import { MUSCLE_BY_ID, displayName, type MuscleId } from "@/lib/anatomy/muscles";
+import { ANATOMY_VB, pathsForMuscle } from "@/lib/anatomy/paths";
+import { pathCentroid, useAnatomyLab } from "@/lib/anatomy/visual";
 import {
   makeAnatomyQuestion,
   makeSpeedPrompt,
@@ -21,9 +24,10 @@ export function AnatomyScreen() {
   const difficulty = useGameStore((s) => s.difficulty);
   const bestSpeed = useGameStore((s) => s.anatomyBestSpeed);
   const [tab, setTab] = useState<Tab>("poke");
+  const lab = useAnatomyLab("muscle");
 
   return (
-    <div className="gym-shell flex flex-col px-4 pb-8 pt-[max(1rem,env(safe-area-inset-top))]">
+    <div className="gym-shell lab-shell flex flex-col px-4 pb-8 pt-[max(1rem,env(safe-area-inset-top))]">
       <header className="flex items-center gap-2">
         <button
           type="button"
@@ -34,7 +38,7 @@ export function AnatomyScreen() {
           <ChevronLeft className="size-5" />
         </button>
         <div className="flex-1 min-w-0 text-center">
-          <p className="font-display tracking-[0.18em] text-xs text-muted">TOOLS & TRAINING</p>
+          <p className="font-display tracking-[0.18em] text-xs text-muted">ATHLETE PERFORMANCE LAB</p>
           <h1 className="font-display tracking-[0.14em] text-lg">POKE A MUSCLE</h1>
         </div>
         <span className="size-11 shrink-0" />
@@ -63,15 +67,23 @@ export function AnatomyScreen() {
       </div>
 
       {tab === "speed" ? (
-        <SpeedPlay key="speed" difficulty={difficulty} best={bestSpeed} />
+        <SpeedPlay key="speed" difficulty={difficulty} best={bestSpeed} lab={lab} />
       ) : (
-        <Play key={tab} kind={tab} difficulty={difficulty} />
+        <Play key={tab} kind={tab} difficulty={difficulty} lab={lab} />
       )}
     </div>
   );
 }
 
-function Play({ kind, difficulty }: { kind: AnatomyKind; difficulty: ReturnType<typeof useGameStore.getState>["difficulty"] }) {
+function Play({
+  kind,
+  difficulty,
+  lab,
+}: {
+  kind: AnatomyKind;
+  difficulty: ReturnType<typeof useGameStore.getState>["difficulty"];
+  lab: ReturnType<typeof useAnatomyLab>;
+}) {
   const record = useGameStore((s) => s.recordAnatomyAnswer);
   const [q, setQ] = useState<AnatomyQuestion>(() => makeAnatomyQuestion(difficulty, kind));
   const [streak, setStreak] = useState(0);
@@ -83,6 +95,9 @@ function Play({ kind, difficulty }: { kind: AnatomyKind; difficulty: ReturnType<
   const muscle = MUSCLE_BY_ID[q.muscleId];
   const reveal = flash === "correct" || misses >= 2;
   const named = kind === "name";
+  const path = pathsForMuscle(q.muscleId, muscle.view)[0];
+  const c = path ? pathCentroid(path.d) : { x: 110, y: 200 };
+  const labelAt = { x: (c.x / ANATOMY_VB.w) * 100, y: (c.y / ANATOMY_VB.h) * 100 };
 
   function next(from = q.muscleId) {
     setQ(makeAnatomyQuestion(difficulty, kind, from));
@@ -104,6 +119,7 @@ function Play({ kind, difficulty }: { kind: AnatomyKind; difficulty: ReturnType<
       streak: nextStreak,
     });
     record({ hit: true, xp, streak: nextStreak });
+    lab.celebrate(xp, nextStreak);
     window.setTimeout(() => next(), 1100);
   }
 
@@ -116,7 +132,8 @@ function Play({ kind, difficulty }: { kind: AnatomyKind; difficulty: ReturnType<
     record({ hit: false, xp: 0, streak: 0 });
   }
 
-  function onPoke(id: MuscleId | null) {
+  function onPoke(id: MuscleId | null, pt?: { x: number; y: number }) {
+    if (pt) lab.impact(pt.x, pt.y);
     if (kind !== "poke" || flash === "correct") return;
     if (id === q.muscleId) succeed();
     else fail(id);
@@ -129,22 +146,31 @@ function Play({ kind, difficulty }: { kind: AnatomyKind; difficulty: ReturnType<
     else fail(id);
   }
 
-  return (
-    <div className="mt-4 max-w-md mx-auto w-full flex flex-col">
-      <div className="flex items-center justify-between text-xs uppercase tracking-[0.16em] text-muted">
-        <span>{DIFFICULTY_META[difficulty].name}</span>
-        <span className="inline-flex items-center gap-1">
-          <Flame className="size-3.5 text-accent" />
-          {streak} streak
-        </span>
-      </div>
-      <p className="mt-3 text-center font-display text-xl tracking-[0.12em] text-pretty">{q.prompt}</p>
-      <p className="text-center text-[11px] uppercase tracking-[0.18em] text-subtle mt-1">
-        {muscle.view === "front" ? "Anterior" : "Posterior"}
-        {muscle.group ? " · group" : ""}
-      </p>
+  const showLabel = flash === "correct" || misses >= 2;
 
-      <div className="mt-2 flex justify-center">
+  return (
+    <AnatomyLab
+      personality="muscle"
+      difficulty={difficulty}
+      prompt={q.prompt}
+      promptKey={q.id}
+      viewLabel={muscle.view === "front" ? "Anterior" : "Posterior"}
+      group={muscle.group}
+      flash={flash}
+      streak={streak}
+      xpBurst={lab.xpBurst}
+      streakBurst={lab.streakBurst}
+      intro={lab.intro}
+      reduced={lab.reduced}
+      ripples={lab.ripples}
+      label={
+        showLabel
+          ? { title: muscle.name.toUpperCase(), subtitle: muscle.gymName }
+          : null
+      }
+      labelAt={showLabel ? labelAt : null}
+      onSkipIntro={lab.skipIntro}
+      figure={
         <BodyFigure
           view={muscle.view}
           target={named || reveal ? q.muscleId : null}
@@ -152,63 +178,61 @@ function Play({ kind, difficulty }: { kind: AnatomyKind; difficulty: ReturnType<
           reveal={reveal}
           fatHit={difficulty === "rookie"}
           locked={flash === "correct"}
+          hit={flash}
           onPoke={onPoke}
         />
-      </div>
-
-      {kind === "name" && q.choices ? (
-        <div className="mt-3 grid grid-cols-2 gap-2">
-          {q.choices.map((c) => {
-            const showCorrect = flash === "correct" && c.id === q.muscleId;
-            const showWrong = flash === "wrong" && picked === c.id;
-            return (
-              <button
-                key={c.id}
-                type="button"
-                onClick={() => onName(c.id)}
-                className={cn(
-                  "min-h-14 rounded-2xl border px-2 font-display text-sm tracking-wide",
-                  showCorrect && "border-success bg-success text-fg",
-                  showWrong && "border-danger bg-danger/20 text-fg",
-                  !showCorrect && !showWrong && "border-border bg-surface text-fg",
-                )}
-              >
-                {c.label}
-              </button>
-            );
-          })}
-        </div>
-      ) : null}
-
-      {flash === "correct" ? (
-        <div className="mt-3 text-center bm-pop">
-          <p className="font-display text-3xl tracking-[0.14em]">NAILED IT</p>
-          <p className="mt-2 text-sm text-muted text-pretty">{q.fact}</p>
-        </div>
-      ) : null}
-      {flash === "wrong" ? (
-        <div className="mt-3 text-center">
-          <p className="font-display tracking-wide">TRY AGAIN</p>
-          {misses >= 2 ? (
-            <p className="mt-1 text-sm text-muted">
+      }
+      aside={
+        flash === "correct" ? (
+          <p className="mt-2 text-sm text-muted text-pretty text-center">{q.fact}</p>
+        ) : flash === "wrong" ? (
+          misses >= 2 ? (
+            <p className="mt-1 text-sm text-muted text-center">
               {displayName(muscle, difficulty)}
               {muscle.group ? " (group)" : ""} — {q.cue}
             </p>
           ) : (
-            <p className="mt-1 text-sm text-muted">Tap the matching region.</p>
-          )}
-        </div>
-      ) : null}
-    </div>
+            <p className="mt-1 text-sm text-muted text-center">Tap the matching region.</p>
+          )
+        ) : null
+      }
+      footer={
+        kind === "name" && q.choices ? (
+          <div className="mt-3 grid grid-cols-2 gap-2">
+            {q.choices.map((c) => {
+              const showCorrect = flash === "correct" && c.id === q.muscleId;
+              const showWrong = flash === "wrong" && picked === c.id;
+              return (
+                <button
+                  key={c.id}
+                  type="button"
+                  onClick={() => onName(c.id)}
+                  className={cn(
+                    "min-h-14 rounded-2xl border px-2 font-display text-sm tracking-wide",
+                    showCorrect && "border-success bg-success text-fg",
+                    showWrong && "border-danger bg-danger/20 text-fg",
+                    !showCorrect && !showWrong && "border-border bg-surface text-fg",
+                  )}
+                >
+                  {c.label}
+                </button>
+              );
+            })}
+          </div>
+        ) : null
+      }
+    />
   );
 }
 
 function SpeedPlay({
   difficulty,
   best,
+  lab,
 }: {
   difficulty: ReturnType<typeof useGameStore.getState>["difficulty"];
   best: number;
+  lab: ReturnType<typeof useAnatomyLab>;
 }) {
   const record = useGameStore((s) => s.recordAnatomyAnswer);
   const setBest = useGameStore((s) => s.setAnatomySpeedBest);
@@ -220,6 +244,7 @@ function SpeedPlay({
   const [score, setScore] = useState(0);
   const [streak, setStreak] = useState(0);
   const [bestStreak, setBestStreak] = useState(0);
+  const [hit, setHit] = useState<"correct" | "wrong" | null>(null);
 
   useEffect(() => {
     if (!running) return;
@@ -247,6 +272,7 @@ function SpeedPlay({
   }, [remaining, running, score, setBest]);
 
   function start() {
+    lab.skipIntro();
     setRunning(true);
     setRemaining(60000);
     setCorrect(0);
@@ -254,11 +280,13 @@ function SpeedPlay({
     setScore(0);
     setStreak(0);
     setBestStreak(0);
+    setHit(null);
     setQ(makeSpeedPrompt(difficulty));
   }
 
-  function onPoke(id: MuscleId | null) {
+  function onPoke(id: MuscleId | null, pt?: { x: number; y: number }) {
     if (!running) return;
+    if (pt) lab.impact(pt.x, pt.y);
     const muscle = MUSCLE_BY_ID[q.muscleId];
     if (id === q.muscleId) {
       sfx.correct();
@@ -268,17 +296,19 @@ function SpeedPlay({
       setCorrect((n) => n + 1);
       const gained = 10 + Math.min(20, nextStreak * 2);
       setScore((s) => s + gained);
-      record({
-        hit: true,
-        xp: xpForCorrect({ difficulty, attempts: 1, elapsedMs: 800, streak: nextStreak }),
-        streak: nextStreak,
-      });
+      const xp = xpForCorrect({ difficulty, attempts: 1, elapsedMs: 800, streak: nextStreak });
+      record({ hit: true, xp, streak: nextStreak });
+      lab.celebrate(xp, nextStreak);
+      setHit("correct");
       setQ(makeSpeedPrompt(difficulty, muscle.id));
+      window.setTimeout(() => setHit(null), 180);
       return;
     }
     sfx.wrong();
     setStreak(0);
     setIncorrect((n) => n + 1);
+    setHit("wrong");
+    window.setTimeout(() => setHit(null), 180);
     record({ hit: false, xp: 0, streak: 0 });
   }
 
@@ -325,24 +355,43 @@ function SpeedPlay({
         <span className="tabular-nums">{Math.ceil(remaining / 1000)}s</span>
         <span className="tabular-nums">{score} pts</span>
         <span className="inline-flex items-center gap-1">
-          <Flame className="size-3.5 text-accent" />
-          {streak}
+          {streak} streak
         </span>
       </div>
       <div className="mt-2 h-1 rounded-full bg-surface-2 overflow-hidden">
         <div className="h-full bg-accent" style={{ width: `${(remaining / 60000) * 100}%` }} />
       </div>
-      <p className="mt-3 text-center font-display text-2xl tracking-[0.12em]">{q.prompt}</p>
-      <div className="mt-2 flex justify-center">
-        <BodyFigure
-          view={muscle.view}
-          target={null}
-          missId={null}
-          reveal={false}
-          fatHit={difficulty === "rookie"}
-          onPoke={onPoke}
-        />
-      </div>
+      <AnatomyLab
+        personality="muscle"
+        difficulty={difficulty}
+        prompt={q.prompt}
+        promptKey={q.id}
+        viewLabel={muscle.view === "front" ? "Anterior" : "Posterior"}
+        group={false}
+        flash={hit}
+        streak={streak}
+        xpBurst={lab.xpBurst}
+        streakBurst={lab.streakBurst}
+        intro={false}
+        speed
+        reduced={lab.reduced}
+        ripples={lab.ripples}
+        label={null}
+        labelAt={null}
+        onSkipIntro={lab.skipIntro}
+        figure={
+          <BodyFigure
+            view={muscle.view}
+            target={null}
+            missId={null}
+            reveal={false}
+            fatHit={difficulty === "rookie"}
+            hit={hit}
+            speed
+            onPoke={onPoke}
+          />
+        }
+      />
     </div>
   );
 }

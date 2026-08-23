@@ -320,16 +320,24 @@
   .anatomy-svg {
     width: min(100%, 22rem);
     height: auto;
-    max-height: 58dvh;
+    max-height: 64dvh;
     touch-action: manipulation;
     overflow: visible;
     user-select: none;
     -webkit-user-select: none;
   }
 
+  @media (min-width: 1024px) {
+    .anatomy-svg,
+    .skeleton-svg {
+      max-height: 72dvh;
+      width: min(100%, 26rem);
+    }
+  }
+
   .anatomy-body {
     fill: var(--color-surface-2);
-    stroke: var(--color-border);
+    stroke: color-mix(in oklab, var(--color-border) 80%, var(--color-accent));
     stroke-width: 1.4;
     pointer-events: none;
   }
@@ -340,12 +348,41 @@
     stroke-width: 1.3;
     paint-order: stroke fill;
     cursor: pointer;
-    transition: fill 120ms ease, stroke 120ms ease;
+    transition: fill 140ms ease, stroke 140ms ease, filter 140ms ease;
+  }
+
+  .anatomy-muscle[data-band="shoulder"] {
+    fill: color-mix(in oklab, var(--color-accent) 30%, var(--color-surface));
+  }
+  .anatomy-muscle[data-band="torso"] {
+    fill: color-mix(in oklab, var(--color-accent) 24%, var(--color-surface-2));
+  }
+  .anatomy-muscle[data-band="core"] {
+    fill: color-mix(in oklab, var(--color-accent) 18%, var(--color-surface));
+  }
+  .anatomy-muscle[data-band="arm"] {
+    fill: color-mix(in oklab, var(--color-accent) 26%, var(--color-surface-2));
+  }
+  .anatomy-muscle[data-band="leg"] {
+    fill: color-mix(in oklab, var(--color-accent) 21%, var(--color-surface));
+  }
+  .anatomy-muscle[data-band="calf"] {
+    fill: color-mix(in oklab, var(--color-accent) 16%, var(--color-surface-2));
+  }
+
+  .anatomy-muscle-gloss {
+    pointer-events: none;
+    opacity: 0.35;
   }
 
   .anatomy-svg.is-rookie .anatomy-muscle {
     stroke-width: 6;
     stroke: color-mix(in oklab, var(--color-accent) 35%, var(--color-border));
+  }
+
+  .lab-board.is-coach .anatomy-muscle,
+  .lab-board.is-elite .anatomy-muscle {
+    stroke-width: 1.1;
   }
 
   .anatomy-muscle.is-named,
@@ -354,15 +391,31 @@
     stroke: var(--color-accent);
   }
 
+  .anatomy-muscle.is-reveal {
+    animation: lab-reveal 520ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .anatomy-muscle.is-hit {
+    fill: color-mix(in oklab, var(--color-accent) 70%, var(--color-surface));
+    stroke: var(--color-accent);
+    animation: lab-hit 420ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .anatomy-muscle.is-hit-fast {
+    fill: color-mix(in oklab, var(--color-accent) 62%, var(--color-surface));
+    animation: lab-hit-fast 180ms ease-out;
+  }
+
   .anatomy-muscle.is-miss {
     fill: color-mix(in oklab, var(--color-danger) 45%, var(--color-surface));
     stroke: var(--color-danger);
+    animation: lab-miss 280ms ease-out;
   }
 
   .skeleton-svg {
     width: min(100%, 22rem);
     height: auto;
-    max-height: 58dvh;
+    max-height: 64dvh;
     touch-action: manipulation;
     overflow: visible;
     user-select: none;
@@ -382,7 +435,36 @@
     stroke-width: 1.4;
     paint-order: stroke fill;
     cursor: pointer;
-    transition: fill 120ms ease, stroke 120ms ease;
+    transition: fill 140ms ease, stroke 140ms ease;
+  }
+
+  .skeleton-bone[data-band="head"] {
+    fill: color-mix(in oklab, var(--color-accent) 52%, var(--color-surface));
+  }
+  .skeleton-bone[data-band="cage"] {
+    fill: color-mix(in oklab, var(--color-accent) 40%, var(--color-surface-2));
+  }
+  .skeleton-bone[data-band="girdle"] {
+    fill: color-mix(in oklab, var(--color-accent) 46%, var(--color-surface));
+  }
+  .skeleton-bone[data-band="limb"] {
+    fill: color-mix(in oklab, var(--color-accent) 44%, var(--color-surface-2));
+  }
+  .skeleton-bone[data-band="joint"] {
+    fill: color-mix(in oklab, var(--color-accent) 58%, var(--color-surface));
+  }
+  .skeleton-bone[data-band="small"] {
+    fill: color-mix(in oklab, var(--color-accent) 36%, var(--color-surface));
+  }
+
+  .skeleton-bone-gloss {
+    pointer-events: none;
+    opacity: 0.4;
+  }
+
+  .skeleton-mark {
+    fill: color-mix(in oklab, var(--color-bg) 55%, var(--color-surface));
+    stroke: none;
   }
 
   .skeleton-svg.is-rookie .skeleton-bone {
@@ -403,9 +485,157 @@
     stroke: var(--color-accent);
   }
 
+  .skeleton-bone.is-reveal {
+    animation: lab-reveal 520ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .skeleton-bone.is-hit {
+    fill: color-mix(in oklab, var(--color-accent) 82%, var(--color-surface));
+    stroke: var(--color-accent);
+    animation: lab-whack 380ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .skeleton-bone.is-hit-fast {
+    fill: color-mix(in oklab, var(--color-accent) 78%, var(--color-surface));
+    animation: lab-hit-fast 180ms ease-out;
+  }
+
   .skeleton-bone.is-miss {
     fill: color-mix(in oklab, var(--color-danger) 45%, var(--color-surface));
     stroke: var(--color-danger);
+    animation: lab-miss 280ms ease-out;
+  }
+
+  .lab-floor {
+    fill: rgb(0 0 0 / 0.28);
+    pointer-events: none;
+  }
+
+  .lab-board {
+    max-width: 28rem;
+  }
+
+  @media (min-width: 1024px) {
+    .lab-board {
+      max-width: 68rem;
+      display: grid;
+      grid-template-columns: 16rem minmax(0, 1fr) 15rem;
+      gap: 1.25rem 1.5rem;
+      align-items: start;
+    }
+    .lab-copy { grid-column: 1; grid-row: 1; }
+    .lab-figure-col { grid-column: 2; grid-row: 1 / span 2; margin-top: 0; }
+    .lab-aside { grid-column: 3; grid-row: 1; }
+  }
+
+  .lab-stage {
+    position: relative;
+    display: grid;
+    place-items: center;
+    isolation: isolate;
+  }
+
+  .lab-stage.can-breathe .lab-figure-spin.is-live {
+    animation:
+      lab-view-in 280ms cubic-bezier(0.22, 1, 0.36, 1),
+      lab-breathe 5.6s ease-in-out 280ms infinite;
+  }
+
+  .lab-figure-spin {
+    transform-origin: center;
+  }
+
+  .lab-prompt.is-enter {
+    animation: lab-prompt-in 220ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .lab-ripple {
+    position: absolute;
+    width: 2.4rem;
+    height: 2.4rem;
+    margin: -1.2rem 0 0 -1.2rem;
+    border-radius: 999px;
+    border: 2px solid color-mix(in oklab, var(--color-accent) 80%, var(--color-fg));
+    pointer-events: none;
+    animation: lab-ripple 420ms ease-out forwards;
+  }
+
+  .lab-ripple.is-whack {
+    width: 3rem;
+    height: 3rem;
+    margin: -1.5rem 0 0 -1.5rem;
+    border-width: 3px;
+    animation-duration: 460ms;
+  }
+
+  .lab-scan {
+    position: absolute;
+    inset-inline: 18%;
+    height: 2px;
+    background: color-mix(in oklab, var(--color-accent) 70%, transparent);
+    pointer-events: none;
+    animation: lab-scan 860ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .lab-ready {
+    position: absolute;
+    inset: auto 0 12%;
+    text-align: center;
+    letter-spacing: 0.28em;
+    color: var(--color-accent);
+    pointer-events: none;
+    animation: lab-ready 860ms ease-out both;
+  }
+
+  .lab-xp {
+    position: absolute;
+    left: 50%;
+    top: 10%;
+    transform: translateX(-50%);
+    color: var(--color-accent);
+    pointer-events: none;
+    animation: lab-xp 720ms ease-out both;
+    font-size: 0.95rem;
+    letter-spacing: 0.12em;
+  }
+
+  .lab-streak-burst {
+    position: absolute;
+    left: 50%;
+    top: 4%;
+    transform: translateX(-50%);
+    pointer-events: none;
+    letter-spacing: 0.18em;
+    color: var(--color-fg);
+    animation: lab-xp 720ms ease-out both;
+  }
+
+  .lab-callout {
+    position: absolute;
+    max-width: 42%;
+    padding: 0.45rem 0.65rem;
+    border: 1px solid var(--color-border);
+    background: color-mix(in oklab, var(--color-surface) 88%, transparent);
+    border-radius: 0.9rem;
+    pointer-events: none;
+    animation: lab-prompt-in 200ms ease-out;
+  }
+
+  .lab-callout.is-right {
+    right: 2%;
+  }
+
+  .lab-callout.is-left {
+    left: 2%;
+  }
+
+  .lab-figure-col.is-intro .anatomy-muscle,
+  .lab-figure-col.is-intro .skeleton-bone {
+    animation: lab-layer-in 640ms ease-out both;
+  }
+
+  .lab-miss-copy {
+    animation: lab-miss-copy 280ms ease-out;
   }
 }
 
@@ -475,11 +705,190 @@
   animation: bm-pop 280ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
+@keyframes lab-breathe {
+  0%,
+  100% {
+    transform: translateY(0) scale(1);
+  }
+  50% {
+    transform: translateY(-1.5px) scale(1.006);
+  }
+}
+
+@keyframes lab-view-in {
+  from {
+    transform: perspective(700px) rotateY(-58deg) scale(0.97);
+    opacity: 0.35;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+
+@keyframes lab-prompt-in {
+  from {
+    transform: translateY(8px);
+    opacity: 0;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+
+@keyframes lab-ripple {
+  from {
+    transform: scale(0.35);
+    opacity: 0.85;
+  }
+  to {
+    transform: scale(1.7);
+    opacity: 0;
+  }
+}
+
+@keyframes lab-scan {
+  from {
+    top: 6%;
+    opacity: 0;
+  }
+  12% {
+    opacity: 1;
+  }
+  to {
+    top: 90%;
+    opacity: 0;
+  }
+}
+
+@keyframes lab-ready {
+  0% {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  30% {
+    opacity: 1;
+    transform: none;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes lab-xp {
+  from {
+    opacity: 1;
+    transform: translateX(-50%) translateY(8px);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-18px);
+  }
+}
+
+@keyframes lab-hit {
+  0% {
+    filter: brightness(1);
+  }
+  35% {
+    filter: brightness(1.28);
+  }
+  100% {
+    filter: brightness(1);
+  }
+}
+
+@keyframes lab-whack {
+  0% {
+    filter: brightness(1);
+  }
+  25% {
+    filter: brightness(1.35);
+  }
+  100% {
+    filter: brightness(1);
+  }
+}
+
+@keyframes lab-hit-fast {
+  0% {
+    filter: brightness(1);
+  }
+  50% {
+    filter: brightness(1.22);
+  }
+  100% {
+    filter: brightness(1);
+  }
+}
+
+@keyframes lab-miss {
+  0%,
+  100% {
+    filter: none;
+  }
+  40% {
+    filter: brightness(0.86);
+  }
+}
+
+@keyframes lab-reveal {
+  0% {
+    filter: brightness(1);
+  }
+  40% {
+    filter: brightness(1.25);
+  }
+  100% {
+    filter: brightness(1);
+  }
+}
+
+@keyframes lab-layer-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes lab-miss-copy {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .bm-plate-on,
   .bm-barbell.is-hit,
   .bm-shake,
-  .bm-pop {
-    animation: none;
+  .bm-pop,
+  .lab-prompt.is-enter,
+  .lab-ripple,
+  .lab-scan,
+  .lab-ready,
+  .lab-xp,
+  .lab-streak-burst,
+  .lab-callout,
+  .anatomy-muscle.is-hit,
+  .anatomy-muscle.is-hit-fast,
+  .anatomy-muscle.is-miss,
+  .anatomy-muscle.is-reveal,
+  .skeleton-bone.is-hit,
+  .skeleton-bone.is-hit-fast,
+  .skeleton-bone.is-miss,
+  .skeleton-bone.is-reveal,
+  .lab-stage.can-breathe .lab-figure-spin.is-live,
+  .lab-figure-col.is-intro .anatomy-muscle,
+  .lab-figure-col.is-intro .skeleton-bone,
+  .lab-miss-copy {
+    animation: none !important;
   }
 }

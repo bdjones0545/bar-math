@@ -1,12 +1,15 @@
 import { useEffect, useState } from "react";
-import { ChevronLeft, Flame } from "lucide-react";
+import { ChevronLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SkeletonFigure } from "@/components/bones/SkeletonFigure";
+import { AnatomyLab } from "@/components/anatomy/AnatomyLab";
 import { useGameStore } from "@/lib/game/store";
-import { DIFFICULTY_META, xpForCorrect } from "@/lib/game/progression";
+import { xpForCorrect } from "@/lib/game/progression";
 import { sfx } from "@/lib/game/audio";
 import { cn } from "@/lib/utils";
 import { BONE_BY_ID, displayBoneName, type BoneId } from "@/lib/bones/bones";
+import { SKELETON_VB, pathsForBone } from "@/lib/bones/paths";
+import { pathCentroid, useAnatomyLab } from "@/lib/anatomy/visual";
 import {
   makeBoneQuestion,
   makeBoneSpeedPrompt,
@@ -21,9 +24,10 @@ export function BonesScreen() {
   const difficulty = useGameStore((s) => s.difficulty);
   const bestSpeed = useGameStore((s) => s.boneBestSpeed);
   const [tab, setTab] = useState<Tab>("whack");
+  const lab = useAnatomyLab("bone");
 
   return (
-    <div className="gym-shell flex flex-col px-4 pb-8 pt-[max(1rem,env(safe-area-inset-top))]">
+    <div className="gym-shell lab-shell flex flex-col px-4 pb-8 pt-[max(1rem,env(safe-area-inset-top))]">
       <header className="flex items-center gap-2">
         <button
           type="button"
@@ -34,7 +38,7 @@ export function BonesScreen() {
           <ChevronLeft className="size-5" />
         </button>
         <div className="flex-1 min-w-0 text-center">
-          <p className="font-display tracking-[0.18em] text-xs text-muted">TOOLS & TRAINING</p>
+          <p className="font-display tracking-[0.18em] text-xs text-muted">ATHLETE PERFORMANCE LAB</p>
           <h1 className="font-display tracking-[0.14em] text-lg">WHACK A BONE</h1>
         </div>
         <span className="size-11 shrink-0" />
@@ -63,9 +67,9 @@ export function BonesScreen() {
       </div>
 
       {tab === "speed" ? (
-        <SpeedPlay key="speed" difficulty={difficulty} best={bestSpeed} />
+        <SpeedPlay key="speed" difficulty={difficulty} best={bestSpeed} lab={lab} />
       ) : (
-        <Play key={tab} kind={tab} difficulty={difficulty} />
+        <Play key={tab} kind={tab} difficulty={difficulty} lab={lab} />
       )}
     </div>
   );
@@ -74,9 +78,11 @@ export function BonesScreen() {
 function Play({
   kind,
   difficulty,
+  lab,
 }: {
   kind: BoneKind;
   difficulty: ReturnType<typeof useGameStore.getState>["difficulty"];
+  lab: ReturnType<typeof useAnatomyLab>;
 }) {
   const record = useGameStore((s) => s.recordBoneAnswer);
   const [q, setQ] = useState<BoneQuestion>(() => makeBoneQuestion(difficulty, kind));
@@ -89,6 +95,10 @@ function Play({
   const bone = BONE_BY_ID[q.boneId];
   const reveal = flash === "correct" || misses >= 2;
   const named = kind === "name";
+  const path = pathsForBone(q.boneId, q.view)[0];
+  const c = path ? pathCentroid(path.d) : { x: 110, y: 200 };
+  const labelAt = { x: (c.x / SKELETON_VB.w) * 100, y: (c.y / SKELETON_VB.h) * 100 };
+  const showLabel = flash === "correct" || misses >= 2;
 
   function next(from = q.boneId) {
     setQ(makeBoneQuestion(difficulty, kind, from));
@@ -110,6 +120,7 @@ function Play({
       streak: nextStreak,
     });
     record({ hit: true, xp, streak: nextStreak });
+    lab.celebrate(xp, nextStreak);
     window.setTimeout(() => next(), 1100);
   }
 
@@ -122,7 +133,8 @@ function Play({
     record({ hit: false, xp: 0, streak: 0 });
   }
 
-  function onWhack(id: BoneId | null) {
+  function onWhack(id: BoneId | null, pt?: { x: number; y: number }) {
+    if (pt) lab.impact(pt.x, pt.y);
     if (kind !== "whack" || flash === "correct") return;
     if (id === q.boneId) succeed();
     else fail(id);
@@ -136,21 +148,24 @@ function Play({
   }
 
   return (
-    <div className="mt-4 max-w-md mx-auto w-full flex flex-col">
-      <div className="flex items-center justify-between text-xs uppercase tracking-[0.16em] text-muted">
-        <span>{DIFFICULTY_META[difficulty].name}</span>
-        <span className="inline-flex items-center gap-1">
-          <Flame className="size-3.5 text-accent" />
-          {streak} streak
-        </span>
-      </div>
-      <p className="mt-3 text-center font-display text-xl tracking-[0.12em] text-pretty">{q.prompt}</p>
-      <p className="text-center text-[11px] uppercase tracking-[0.18em] text-subtle mt-1">
-        {q.view === "front" ? "Anterior" : "Posterior"}
-        {bone.group ? " · group" : ""}
-      </p>
-
-      <div className="mt-2 flex justify-center">
+    <AnatomyLab
+      personality="bone"
+      difficulty={difficulty}
+      prompt={q.prompt}
+      promptKey={q.id}
+      viewLabel={q.view === "front" ? "Anterior" : "Posterior"}
+      group={bone.group}
+      flash={flash}
+      streak={streak}
+      xpBurst={lab.xpBurst}
+      streakBurst={lab.streakBurst}
+      intro={lab.intro}
+      reduced={lab.reduced}
+      ripples={lab.ripples}
+      label={showLabel ? { title: bone.name.toUpperCase(), subtitle: bone.gymName } : null}
+      labelAt={showLabel ? labelAt : null}
+      onSkipIntro={lab.skipIntro}
+      figure={
         <SkeletonFigure
           view={q.view}
           target={named || reveal ? q.boneId : null}
@@ -158,63 +173,61 @@ function Play({
           reveal={reveal}
           fatHit={difficulty === "rookie"}
           locked={flash === "correct"}
+          hit={flash}
           onWhack={onWhack}
         />
-      </div>
-
-      {kind === "name" && q.choices ? (
-        <div className="mt-3 grid grid-cols-2 gap-2">
-          {q.choices.map((c) => {
-            const showCorrect = flash === "correct" && c.id === q.boneId;
-            const showWrong = flash === "wrong" && picked === c.id;
-            return (
-              <button
-                key={c.id}
-                type="button"
-                onClick={() => onName(c.id)}
-                className={cn(
-                  "min-h-14 rounded-2xl border px-2 font-display text-sm tracking-wide",
-                  showCorrect && "border-success bg-success text-fg",
-                  showWrong && "border-danger bg-danger/20 text-fg",
-                  !showCorrect && !showWrong && "border-border bg-surface text-fg",
-                )}
-              >
-                {c.label}
-              </button>
-            );
-          })}
-        </div>
-      ) : null}
-
-      {flash === "correct" ? (
-        <div className="mt-3 text-center bm-pop">
-          <p className="font-display text-3xl tracking-[0.14em]">NAILED IT</p>
-          <p className="mt-2 text-sm text-muted text-pretty">{q.fact}</p>
-        </div>
-      ) : null}
-      {flash === "wrong" ? (
-        <div className="mt-3 text-center">
-          <p className="font-display tracking-wide">TRY AGAIN</p>
-          {misses >= 2 ? (
-            <p className="mt-1 text-sm text-muted">
+      }
+      aside={
+        flash === "correct" ? (
+          <p className="mt-2 text-sm text-muted text-pretty text-center">{q.fact}</p>
+        ) : flash === "wrong" ? (
+          misses >= 2 ? (
+            <p className="mt-1 text-sm text-muted text-center">
               {displayBoneName(bone, difficulty)}
               {bone.group ? " (group)" : ""} — {q.cue}
             </p>
           ) : (
-            <p className="mt-1 text-sm text-muted">Tap the matching bone.</p>
-          )}
-        </div>
-      ) : null}
-    </div>
+            <p className="mt-1 text-sm text-muted text-center">Tap the matching bone.</p>
+          )
+        ) : null
+      }
+      footer={
+        kind === "name" && q.choices ? (
+          <div className="mt-3 grid grid-cols-2 gap-2">
+            {q.choices.map((c) => {
+              const showCorrect = flash === "correct" && c.id === q.boneId;
+              const showWrong = flash === "wrong" && picked === c.id;
+              return (
+                <button
+                  key={c.id}
+                  type="button"
+                  onClick={() => onName(c.id)}
+                  className={cn(
+                    "min-h-14 rounded-2xl border px-2 font-display text-sm tracking-wide",
+                    showCorrect && "border-success bg-success text-fg",
+                    showWrong && "border-danger bg-danger/20 text-fg",
+                    !showCorrect && !showWrong && "border-border bg-surface text-fg",
+                  )}
+                >
+                  {c.label}
+                </button>
+              );
+            })}
+          </div>
+        ) : null
+      }
+    />
   );
 }
 
 function SpeedPlay({
   difficulty,
   best,
+  lab,
 }: {
   difficulty: ReturnType<typeof useGameStore.getState>["difficulty"];
   best: number;
+  lab: ReturnType<typeof useAnatomyLab>;
 }) {
   const record = useGameStore((s) => s.recordBoneAnswer);
   const setBest = useGameStore((s) => s.setBoneSpeedBest);
@@ -226,6 +239,7 @@ function SpeedPlay({
   const [score, setScore] = useState(0);
   const [streak, setStreak] = useState(0);
   const [bestStreak, setBestStreak] = useState(0);
+  const [hit, setHit] = useState<"correct" | "wrong" | null>(null);
 
   useEffect(() => {
     if (!running) return;
@@ -253,6 +267,7 @@ function SpeedPlay({
   }, [remaining, running, score, setBest]);
 
   function start() {
+    lab.skipIntro();
     setRunning(true);
     setRemaining(60000);
     setCorrect(0);
@@ -260,11 +275,13 @@ function SpeedPlay({
     setScore(0);
     setStreak(0);
     setBestStreak(0);
+    setHit(null);
     setQ(makeBoneSpeedPrompt(difficulty));
   }
 
-  function onWhack(id: BoneId | null) {
+  function onWhack(id: BoneId | null, pt?: { x: number; y: number }) {
     if (!running) return;
+    if (pt) lab.impact(pt.x, pt.y);
     const bone = BONE_BY_ID[q.boneId];
     if (id === q.boneId) {
       sfx.correct();
@@ -274,17 +291,19 @@ function SpeedPlay({
       setCorrect((n) => n + 1);
       const gained = 10 + Math.min(20, nextStreak * 2);
       setScore((s) => s + gained);
-      record({
-        hit: true,
-        xp: xpForCorrect({ difficulty, attempts: 1, elapsedMs: 800, streak: nextStreak }),
-        streak: nextStreak,
-      });
+      const xp = xpForCorrect({ difficulty, attempts: 1, elapsedMs: 800, streak: nextStreak });
+      record({ hit: true, xp, streak: nextStreak });
+      lab.celebrate(xp, nextStreak);
+      setHit("correct");
       setQ(makeBoneSpeedPrompt(difficulty, bone.id));
+      window.setTimeout(() => setHit(null), 180);
       return;
     }
     sfx.wrong();
     setStreak(0);
     setIncorrect((n) => n + 1);
+    setHit("wrong");
+    window.setTimeout(() => setHit(null), 180);
     record({ hit: false, xp: 0, streak: 0 });
   }
 
@@ -329,25 +348,42 @@ function SpeedPlay({
       <div className="flex items-center justify-between text-xs uppercase tracking-[0.16em] text-muted">
         <span className="tabular-nums">{Math.ceil(remaining / 1000)}s</span>
         <span className="tabular-nums">{score} pts</span>
-        <span className="inline-flex items-center gap-1">
-          <Flame className="size-3.5 text-accent" />
-          {streak}
-        </span>
+        <span>{streak} streak</span>
       </div>
       <div className="mt-2 h-1 rounded-full bg-surface-2 overflow-hidden">
         <div className="h-full bg-accent" style={{ width: `${(remaining / 60000) * 100}%` }} />
       </div>
-      <p className="mt-3 text-center font-display text-2xl tracking-[0.12em]">{q.prompt}</p>
-      <div className="mt-2 flex justify-center">
-        <SkeletonFigure
-          view={q.view}
-          target={null}
-          missId={null}
-          reveal={false}
-          fatHit={difficulty === "rookie"}
-          onWhack={onWhack}
-        />
-      </div>
+      <AnatomyLab
+        personality="bone"
+        difficulty={difficulty}
+        prompt={q.prompt}
+        promptKey={q.id}
+        viewLabel={q.view === "front" ? "Anterior" : "Posterior"}
+        group={false}
+        flash={hit}
+        streak={streak}
+        xpBurst={lab.xpBurst}
+        streakBurst={lab.streakBurst}
+        intro={false}
+        speed
+        reduced={lab.reduced}
+        ripples={lab.ripples}
+        label={null}
+        labelAt={null}
+        onSkipIntro={lab.skipIntro}
+        figure={
+          <SkeletonFigure
+            view={q.view}
+            target={null}
+            missId={null}
+            reveal={false}
+            fatHit={difficulty === "rookie"}
+            hit={hit}
+            speed
+            onWhack={onWhack}
+          />
+        }
+      />
     </div>
   );
 }
