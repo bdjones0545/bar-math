@@ -1,6 +1,6 @@
 import { createHash, randomBytes, randomUUID } from "node:crypto";
 import { getRequestHeader } from "@tanstack/react-start/server";
-import { getSql } from "../db.ts";
+import { getSql, dbRelatedEnvKeys } from "../db.ts";
 import {
   hourWindowId,
   periodStartUtc,
@@ -22,10 +22,11 @@ function redactDbError(err: unknown): string {
 
 function requireDurableDb(): { ok: false; error: string } | null {
   const onVercel = process.env.VERCEL_ENV === "production" || process.env.VERCEL === "1";
-  const present = Boolean(process.env["DATABASE_URL"]?.trim());
+  const present = Boolean(process.env.DATABASE_URL?.trim() || process.env["DATABASE_URL"]?.trim() || process.env.POSTGRES_URL?.trim());
   if (onVercel && !present) {
+    const keys = dbRelatedEnvKeys();
     console.warn(
-      `[lb] DATABASE_URL missing at runtime vercel=${process.env.VERCEL || "0"} env=${process.env.VERCEL_ENV || "none"}`,
+      `[lb] DATABASE_URL missing at runtime vercel=${process.env.VERCEL || "0"} env=${process.env.VERCEL_ENV || "none"} envCount=${Object.keys(process.env).length} dbKeys=${keys.join(",") || "(none)"}`,
     );
     return { ok: false, error: "unavailable" };
   }

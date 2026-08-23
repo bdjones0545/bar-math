@@ -4,14 +4,25 @@ import { pendingMigrations } from "../../scripts/migration-plan.mjs";
 export type DbSource = "neon" | "pglite";
 
 /**
- * Read DATABASE_URL at call time. Bracket access avoids bundlers inlining a
- * build-time empty value; Vercel injects the production secret at runtime.
+ * Read DATABASE_URL at call time. Keep a static `process.env.DATABASE_URL`
+ * access so bundlers/platforms that scan for it still inject the secret.
  * Never log the raw string — it contains the database password.
  */
 function readDatabaseUrl(): string | undefined {
   if (typeof process === "undefined") return undefined;
-  const raw = process.env["DATABASE_URL"];
+  const fromStatic = process.env.DATABASE_URL;
+  const fromBracket = process.env["DATABASE_URL"];
+  const fromPostgres = process.env.POSTGRES_URL;
+  const raw = [fromStatic, fromBracket, fromPostgres].find((v) => v && v.trim());
   return raw && raw.trim() ? raw.trim() : undefined;
+}
+
+/** Names only — never values — of env keys that look like database config. */
+export function dbRelatedEnvKeys(): string[] {
+  if (typeof process === "undefined") return [];
+  return Object.keys(process.env)
+    .filter((k) => /DATABASE|POSTGRES|NEON|^PG/i.test(k))
+    .sort();
 }
 
 export function getDbSource(): DbSource {
