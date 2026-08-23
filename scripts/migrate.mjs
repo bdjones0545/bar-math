@@ -20,10 +20,25 @@ import { pendingMigrations } from "./migration-plan.mjs";
 
 const databaseUrl = process.env.DATABASE_URL;
 if (!databaseUrl) {
+  const onVercel = process.env.VERCEL === "1" || Boolean(process.env.VERCEL_ENV);
+  if (onVercel) {
+    console.error(
+      "[migrate] DATABASE_URL not set on Vercel — refusing to skip. Production leaderboards require Neon, not PGLite.",
+    );
+    process.exit(1);
+  }
   console.log(
     "[migrate] DATABASE_URL not set — skipping (the PGLite fallback migrates itself).",
   );
   process.exit(0);
+}
+
+try {
+  const host = new URL(databaseUrl).hostname;
+  console.log(`[migrate] using host ${host}`);
+} catch {
+  console.error("[migrate] DATABASE_URL is not a valid URL.");
+  process.exit(1);
 }
 
 const migrationsDir = join(dirname(fileURLToPath(import.meta.url)), "..", "migrations");
