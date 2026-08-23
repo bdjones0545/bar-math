@@ -1,7 +1,7 @@
 export type Unit = "lb" | "kg";
 export type Difficulty = "rookie" | "athlete" | "coach" | "elite";
 export type Mode = "load" | "identify" | "speed" | "trainer";
-export type Screen = "home" | "tutorial" | "play" | "stats" | "settings" | "convert" | "anatomy";
+export type Screen = "home" | "tutorial" | "play" | "stats" | "settings" | "convert" | "anatomy" | "bones";
 export type RoundKind = "load" | "identify";
 
 export type PlateSize = "xl" | "lg" | "md" | "sm" | "xs" | "mini";

@@ -358,6 +358,55 @@
     fill: color-mix(in oklab, var(--color-danger) 45%, var(--color-surface));
     stroke: var(--color-danger);
   }
+
+  .skeleton-svg {
+    width: min(100%, 22rem);
+    height: auto;
+    max-height: 58dvh;
+    touch-action: manipulation;
+    overflow: visible;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  .skeleton-body {
+    fill: color-mix(in oklab, var(--color-surface-2) 88%, var(--color-bg));
+    stroke: var(--color-border);
+    stroke-width: 1.2;
+    pointer-events: none;
+  }
+
+  .skeleton-bone {
+    fill: color-mix(in oklab, var(--color-accent) 42%, var(--color-surface));
+    stroke: color-mix(in oklab, var(--color-accent) 55%, var(--color-border));
+    stroke-width: 1.4;
+    paint-order: stroke fill;
+    cursor: pointer;
+    transition: fill 120ms ease, stroke 120ms ease;
+  }
+
+  .skeleton-svg.is-rookie .skeleton-bone {
+    stroke-width: 6;
+  }
+
+  .skeleton-bone.is-narrow {
+    stroke-width: 4.5;
+  }
+
+  .skeleton-svg.is-rookie .skeleton-bone.is-narrow {
+    stroke-width: 8;
+  }
+
+  .skeleton-bone.is-named,
+  .skeleton-bone.is-reveal {
+    fill: color-mix(in oklab, var(--color-accent) 70%, var(--color-surface));
+    stroke: var(--color-accent);
+  }
+
+  .skeleton-bone.is-miss {
+    fill: color-mix(in oklab, var(--color-danger) 45%, var(--color-surface));
+    stroke: var(--color-danger);
+  }
 }
 
 @keyframes bm-slide-on {

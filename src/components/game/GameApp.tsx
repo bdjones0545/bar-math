@@ -6,6 +6,7 @@ import { StatsScreen } from "@/components/game/StatsScreen";
 import { SettingsScreen } from "@/components/game/SettingsScreen";
 import { ConvertScreen } from "@/components/convert/ConvertScreen";
 import { AnatomyScreen } from "@/components/anatomy/AnatomyScreen";
+import { BonesScreen } from "@/components/bones/BonesScreen";
 import { useGameStore } from "@/lib/game/store";
 import { setMuted, unlockAudio } from "@/lib/game/audio";
 
@@ -76,6 +77,7 @@ export function GameApp() {
       {screen === "settings" && <SettingsScreen />}
       {screen === "convert" && <ConvertScreen />}
       {screen === "anatomy" && <AnatomyScreen />}
+      {screen === "bones" && <BonesScreen />}
       {toasts[0] ? (
         <div className="fixed top-[max(1rem,env(safe-area-inset-top))] inset-x-0 z-50 flex justify-center px-4 pointer-events-none">
           <div className="bm-pop pointer-events-auto rounded-2xl border border-border bg-surface px-4 py-3 shadow-panel max-w-sm w-full">

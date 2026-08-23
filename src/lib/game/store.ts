@@ -85,6 +85,10 @@ export interface GameState {
   anatomyIncorrect: number;
   anatomyBestStreak: number;
   anatomyBestSpeed: number;
+  boneCorrect: number;
+  boneIncorrect: number;
+  boneBestStreak: number;
+  boneBestSpeed: number;
 
   hydrateDone: () => void;
   setScreen: (screen: Screen) => void;
@@ -109,6 +113,8 @@ export interface GameState {
   resetProgress: () => void;
   recordAnatomyAnswer: (opts: { hit: boolean; xp: number; streak: number }) => void;
   setAnatomySpeedBest: (score: number) => void;
+  recordBoneAnswer: (opts: { hit: boolean; xp: number; streak: number }) => void;
+  setBoneSpeedBest: (score: number) => void;
 }
 
 const emptySpeed = (): SpeedSession => ({
@@ -200,6 +206,10 @@ export const useGameStore = create<GameState>()(
       anatomyIncorrect: 0,
       anatomyBestStreak: 0,
       anatomyBestSpeed: 0,
+      boneCorrect: 0,
+      boneIncorrect: 0,
+      boneBestStreak: 0,
+      boneBestSpeed: 0,
 
       hydrateDone: () => set({ hydrated: true }),
 
@@ -585,6 +595,10 @@ export const useGameStore = create<GameState>()(
           anatomyIncorrect: 0,
           anatomyBestStreak: 0,
           anatomyBestSpeed: 0,
+          boneCorrect: 0,
+          boneIncorrect: 0,
+          boneBestStreak: 0,
+          boneBestSpeed: 0,
         }),
 
       recordAnatomyAnswer: ({ hit, xp, streak }) => {
@@ -602,6 +616,22 @@ export const useGameStore = create<GameState>()(
 
       setAnatomySpeedBest: (score) =>
         set({ anatomyBestSpeed: Math.max(get().anatomyBestSpeed, score) }),
+
+      recordBoneAnswer: ({ hit, xp, streak }) => {
+        const s = get();
+        if (hit) {
+          set({
+            boneCorrect: s.boneCorrect + 1,
+            xp: s.xp + xp,
+            boneBestStreak: Math.max(s.boneBestStreak, streak),
+          });
+          return;
+        }
+        set({ boneIncorrect: s.boneIncorrect + 1 });
+      },
+
+      setBoneSpeedBest: (score) =>
+        set({ boneBestSpeed: Math.max(get().boneBestSpeed, score) }),
     }),
     {
       name: "bar-math-save",
@@ -635,6 +665,10 @@ export const useGameStore = create<GameState>()(
         anatomyIncorrect: s.anatomyIncorrect,
         anatomyBestStreak: s.anatomyBestStreak,
         anatomyBestSpeed: s.anatomyBestSpeed,
+        boneCorrect: s.boneCorrect,
+        boneIncorrect: s.boneIncorrect,
+        boneBestStreak: s.boneBestStreak,
+        boneBestSpeed: s.boneBestSpeed,
       }),
       merge: (persisted, current) => {
         const p = (persisted ?? {}) as Partial<GameState>;
@@ -647,6 +681,10 @@ export const useGameStore = create<GameState>()(
           anatomyIncorrect: asCount(p.anatomyIncorrect, current.anatomyIncorrect),
           anatomyBestStreak: asCount(p.anatomyBestStreak, current.anatomyBestStreak),
           anatomyBestSpeed: asCount(p.anatomyBestSpeed, current.anatomyBestSpeed),
+          boneCorrect: asCount(p.boneCorrect, current.boneCorrect),
+          boneIncorrect: asCount(p.boneIncorrect, current.boneIncorrect),
+          boneBestStreak: asCount(p.boneBestStreak, current.boneBestStreak),
+          boneBestSpeed: asCount(p.boneBestSpeed, current.boneBestSpeed),
         };
       },
     },

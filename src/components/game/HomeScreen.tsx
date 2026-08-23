@@ -1,5 +1,6 @@
 import {
   ArrowLeftRight,
+  Bone,
   Dumbbell,
   Eye,
   GraduationCap,
@@ -113,7 +114,7 @@ export function HomeScreen() {
           <button
             type="button"
             onClick={() => setScreen("convert")}
-            className="text-left rounded-3xl border border-border bg-surface p-4 hover:bg-surface-2 transition-colors duration-150 min-h-28"
+            className="col-span-2 text-left rounded-3xl border border-border bg-surface p-4 hover:bg-surface-2 transition-colors duration-150 min-h-24"
           >
             <ArrowLeftRight className="size-5 text-accent" />
             <p className="mt-3 font-display text-base leading-tight tracking-wide text-fg">
@@ -129,6 +130,15 @@ export function HomeScreen() {
             <PersonStanding className="size-5 text-accent" />
             <p className="mt-3 font-display text-base leading-tight tracking-wide text-fg">Poke a Muscle</p>
             <p className="mt-1 text-xs text-muted text-pretty">See the name. Tap the right place.</p>
+          </button>
+          <button
+            type="button"
+            onClick={() => setScreen("bones")}
+            className="text-left rounded-3xl border border-border bg-surface p-4 hover:bg-surface-2 transition-colors duration-150 min-h-28"
+          >
+            <Bone className="size-5 text-accent" />
+            <p className="mt-3 font-display text-base leading-tight tracking-wide text-fg">Whack a Bone</p>
+            <p className="mt-1 text-xs text-muted text-pretty">See the name. Tap the right bone.</p>
           </button>
         </div>
       </div>

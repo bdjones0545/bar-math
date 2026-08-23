@@ -16,6 +16,10 @@ export function StatsScreen() {
   const anatomyBestSpeed = useGameStore((s) => s.anatomyBestSpeed);
   const anatomyCorrect = useGameStore((s) => s.anatomyCorrect);
   const anatomyIncorrect = useGameStore((s) => s.anatomyIncorrect);
+  const boneBestStreak = useGameStore((s) => s.boneBestStreak);
+  const boneBestSpeed = useGameStore((s) => s.boneBestSpeed);
+  const boneCorrect = useGameStore((s) => s.boneCorrect);
+  const boneIncorrect = useGameStore((s) => s.boneIncorrect);
   const achievements = useGameStore((s) => s.achievements);
   const level = levelForXp(xp);
   const asked = correct + incorrect;
@@ -62,6 +66,12 @@ export function StatsScreen() {
           <Tile
             label="Anatomy hits"
             value={`${anatomyCorrect}/${anatomyCorrect + anatomyIncorrect || 0}`}
+          />
+          <Tile label="Bone speed" value={String(boneBestSpeed)} />
+          <Tile label="Bone streak" value={String(boneBestStreak)} />
+          <Tile
+            label="Bone hits"
+            value={`${boneCorrect}/${boneCorrect + boneIncorrect || 0}`}
           />
         </dl>
 
