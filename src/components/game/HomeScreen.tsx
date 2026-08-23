@@ -4,6 +4,7 @@ import {
   Dumbbell,
   Eye,
   GraduationCap,
+  Medal,
   PersonStanding,
   Timer,
   Volume2,
@@ -141,6 +142,18 @@ export function HomeScreen() {
             <p className="mt-1 text-xs text-muted text-pretty">See the name. Tap the right bone.</p>
           </button>
         </div>
+      </div>
+
+      <div className="mt-6 max-w-md mx-auto w-full">
+        <button
+          type="button"
+          onClick={() => setScreen("leaderboards")}
+          className="w-full text-left rounded-3xl border border-border bg-surface p-4 hover:bg-surface-2 transition-colors duration-150"
+        >
+          <Medal className="size-5 text-accent" />
+          <p className="mt-3 font-display text-base leading-tight tracking-wide text-fg">Leaderboards</p>
+          <p className="mt-1 text-xs text-muted text-pretty">Optional. See how fast you load against other athletes.</p>
+        </button>
       </div>
 
       <div className="mt-6 max-w-md mx-auto w-full">

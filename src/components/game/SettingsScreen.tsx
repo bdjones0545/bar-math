@@ -2,6 +2,7 @@ import { ChevronLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useGameStore } from "@/lib/game/store";
 import { DIFFICULTY_META } from "@/lib/game/progression";
+import { NAME_MAX, sanitizeName } from "@/lib/leaderboard/rules";
 import { cn } from "@/lib/utils";
 import type { Difficulty, Unit } from "@/lib/game/types";
 
@@ -17,6 +18,8 @@ export function SettingsScreen() {
   const setDifficulty = useGameStore((s) => s.setDifficulty);
   const setMuted = useGameStore((s) => s.setMuted);
   const resetProgress = useGameStore((s) => s.resetProgress);
+  const playerName = useGameStore((s) => s.playerName);
+  const setPlayerName = useGameStore((s) => s.setPlayerName);
 
   return (
     <div className="gym-shell px-5 pt-[max(1.25rem,env(safe-area-inset-top))] pb-12">
@@ -79,6 +82,25 @@ export function SettingsScreen() {
             })}
           </div>
           <p className="mt-3 text-xs text-subtle">Saved on this device.</p>
+        </section>
+
+        <section>
+          <h2 className="text-[11px] uppercase tracking-[0.18em] text-muted">Player name</h2>
+          <input
+            defaultValue={playerName}
+            maxLength={NAME_MAX}
+            onBlur={(e) => {
+              const next = sanitizeName(e.target.value);
+              if (next.ok) {
+                setPlayerName(next.name);
+                e.target.value = next.name;
+              }
+            }}
+            className="mt-3 w-full h-12 rounded-2xl border border-border bg-surface px-4 text-fg"
+            placeholder="Shown on leaderboards"
+            autoComplete="off"
+          />
+          <p className="mt-2 text-xs text-subtle">2–16 characters. Saved on this device. Not a login.</p>
         </section>
 
         <section>

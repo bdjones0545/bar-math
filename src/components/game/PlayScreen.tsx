@@ -10,6 +10,8 @@ import { barTotal, formatWeight, specFor } from "@/lib/game/plates";
 import { formatDelta } from "@/lib/game/progression";
 import { trainerCurriculum } from "@/lib/game/math";
 import { cn } from "@/lib/utils";
+import { SpeedSubmit } from "@/components/game/SpeedSubmit";
+import { useLeaderboardTicket } from "@/lib/leaderboard/useTicket";
 
 const MODE_LABEL: Record<string, string> = {
   load: "Load the Bar",
@@ -42,6 +44,8 @@ export function PlayScreen() {
   const tick = useGameStore((s) => s.tick);
   const startMode = useGameStore((s) => s.startMode);
   const trainerIndex = useGameStore((s) => s.trainerIndex);
+  const bestSpeedScore = useGameStore((s) => s.bestSpeedScore);
+  const lb = useLeaderboardTicket("bar", Boolean(speed?.running));
 
   const spec = specFor(unit);
   const clockOn = Boolean(speed?.running) || (eliteRemainingMs !== null && !feedback);
@@ -82,6 +86,15 @@ export function PlayScreen() {
             <Stat label="Accuracy" value={`${acc}%`} />
             <Stat label="Best streak" value={String(speed.bestStreak)} />
           </dl>
+          <SpeedSubmit
+            mode="bar"
+            ticket={lb.ticket}
+            boardStatus={lb.status}
+            score={speed.score}
+            correct={speed.correct}
+            incorrect={speed.incorrect}
+            personalBest={speed.score > 0 && speed.score === bestSpeedScore}
+          />
           <Button className="w-full mt-8" onClick={() => startMode("speed")}>
             Run it back
           </Button>

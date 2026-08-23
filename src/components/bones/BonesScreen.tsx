@@ -3,6 +3,7 @@ import { ChevronLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SkeletonFigure } from "@/components/bones/SkeletonFigure";
 import { AnatomyLab } from "@/components/anatomy/AnatomyLab";
+import { SpeedSubmit } from "@/components/game/SpeedSubmit";
 import { useGameStore } from "@/lib/game/store";
 import { xpForCorrect } from "@/lib/game/progression";
 import { sfx } from "@/lib/game/audio";
@@ -16,6 +17,7 @@ import {
   type BoneKind,
   type BoneQuestion,
 } from "@/lib/bones/game";
+import { useLeaderboardTicket } from "@/lib/leaderboard/useTicket";
 
 type Tab = "whack" | "name" | "speed";
 
@@ -240,6 +242,7 @@ function SpeedPlay({
   const [streak, setStreak] = useState(0);
   const [bestStreak, setBestStreak] = useState(0);
   const [hit, setHit] = useState<"correct" | "wrong" | null>(null);
+  const lb = useLeaderboardTicket("bone", running);
 
   useEffect(() => {
     if (!running) return;
@@ -323,6 +326,15 @@ function SpeedPlay({
           <Stat label="Best streak" value={String(bestStreak)} />
         </dl>
         <p className="mt-4 text-xs uppercase tracking-[0.16em] text-subtle">Best {Math.max(best, score)}</p>
+        <SpeedSubmit
+          mode="bone"
+          ticket={lb.ticket}
+          boardStatus={lb.status}
+          score={score}
+          correct={correct}
+          incorrect={incorrect}
+          personalBest={score > 0 && score === Math.max(best, score)}
+        />
         <Button className="mt-6 w-full" onClick={start}>
           Go again
         </Button>

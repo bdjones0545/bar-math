@@ -7,6 +7,7 @@ import { SettingsScreen } from "@/components/game/SettingsScreen";
 import { ConvertScreen } from "@/components/convert/ConvertScreen";
 import { AnatomyScreen } from "@/components/anatomy/AnatomyScreen";
 import { BonesScreen } from "@/components/bones/BonesScreen";
+import { LeaderboardScreen } from "@/components/game/LeaderboardScreen";
 import { useGameStore } from "@/lib/game/store";
 import { setMuted, unlockAudio } from "@/lib/game/audio";
 
@@ -21,6 +22,14 @@ export function GameApp() {
   useEffect(() => {
     const finish = () => {
       setMuted(useGameStore.getState().muted);
+      const s = useGameStore.getState();
+      if (!s.clientId) {
+        const id =
+          typeof crypto !== "undefined" && "randomUUID" in crypto
+            ? crypto.randomUUID()
+            : `c${Date.now()}${Math.random().toString(36).slice(2)}`;
+        s.setClientId(id);
+      }
       hydrateDone();
     };
     if (useGameStore.persist.hasHydrated()) {
@@ -78,6 +87,7 @@ export function GameApp() {
       {screen === "convert" && <ConvertScreen />}
       {screen === "anatomy" && <AnatomyScreen />}
       {screen === "bones" && <BonesScreen />}
+      {screen === "leaderboards" && <LeaderboardScreen />}
       {toasts[0] ? (
         <div className="fixed top-[max(1rem,env(safe-area-inset-top))] inset-x-0 z-50 flex justify-center px-4 pointer-events-none">
           <div className="bm-pop pointer-events-auto rounded-2xl border border-border bg-surface px-4 py-3 shadow-panel max-w-sm w-full">

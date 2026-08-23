@@ -25,6 +25,7 @@ import type {
   Unit,
 } from "./types";
 import { SAVE_VERSION } from "./types";
+import type { LbMode } from "@/lib/leaderboard/rules";
 
 const DIFFICULTIES: Difficulty[] = ["rookie", "athlete", "coach", "elite"];
 
@@ -89,6 +90,9 @@ export interface GameState {
   boneIncorrect: number;
   boneBestStreak: number;
   boneBestSpeed: number;
+  clientId: string;
+  playerName: string;
+  lbFocus: LbMode | null;
 
   hydrateDone: () => void;
   setScreen: (screen: Screen) => void;
@@ -115,6 +119,9 @@ export interface GameState {
   setAnatomySpeedBest: (score: number) => void;
   recordBoneAnswer: (opts: { hit: boolean; xp: number; streak: number }) => void;
   setBoneSpeedBest: (score: number) => void;
+  setClientId: (id: string) => void;
+  setPlayerName: (name: string) => void;
+  setLbFocus: (mode: LbMode | null) => void;
 }
 
 const emptySpeed = (): SpeedSession => ({
@@ -210,6 +217,9 @@ export const useGameStore = create<GameState>()(
       boneIncorrect: 0,
       boneBestStreak: 0,
       boneBestSpeed: 0,
+      clientId: "",
+      playerName: "",
+      lbFocus: null,
 
       hydrateDone: () => set({ hydrated: true }),
 
@@ -632,6 +642,15 @@ export const useGameStore = create<GameState>()(
 
       setBoneSpeedBest: (score) =>
         set({ boneBestSpeed: Math.max(get().boneBestSpeed, score) }),
+
+      setClientId: (id) => {
+        if (get().clientId) return;
+        if (typeof id === "string" && id.length >= 8) set({ clientId: id });
+      },
+
+      setPlayerName: (name) => set({ playerName: name }),
+
+      setLbFocus: (mode) => set({ lbFocus: mode }),
     }),
     {
       name: "bar-math-save",
@@ -669,6 +688,8 @@ export const useGameStore = create<GameState>()(
         boneIncorrect: s.boneIncorrect,
         boneBestStreak: s.boneBestStreak,
         boneBestSpeed: s.boneBestSpeed,
+        clientId: s.clientId,
+        playerName: s.playerName,
       }),
       merge: (persisted, current) => {
         const p = (persisted ?? {}) as Partial<GameState>;
@@ -685,6 +706,9 @@ export const useGameStore = create<GameState>()(
           boneIncorrect: asCount(p.boneIncorrect, current.boneIncorrect),
           boneBestStreak: asCount(p.boneBestStreak, current.boneBestStreak),
           boneBestSpeed: asCount(p.boneBestSpeed, current.boneBestSpeed),
+          clientId:
+            typeof p.clientId === "string" && p.clientId.length >= 8 ? p.clientId : current.clientId,
+          playerName: typeof p.playerName === "string" ? p.playerName : current.playerName,
         };
       },
     },
