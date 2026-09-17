@@ -1,5 +1,7 @@
 {
   "title": "BAR MATH — Barbell Weight Training Game",
+  "description": "How fast can you load the bar? Train Olympic plate math in pounds and kilos. Free, no account.",
+  "host": "bar-math.vercel.app",
   "type": "x:game",
   "card": "custom"
 }

@@ -1,0 +1,251 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>BAR MATH share card</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..125,500..900&family=Inter:wght@500;600;700&display=block"
+    />
+    <style>
+      /* Mirrors src/styles.css tokens — keep these in sync with the app. */
+      :root {
+        --bg: #08090b;
+        --surface: #111316;
+        --fg: #f5f6f2;
+        --muted: #9096a0;
+        --accent: #c6ff3d;
+        --accent-fg: #0b0f02;
+      }
+      * {
+        box-sizing: border-box;
+        margin: 0;
+      }
+      html,
+      body {
+        background: var(--bg);
+        color: var(--fg);
+        font-family: "Inter", system-ui, sans-serif;
+        -webkit-font-smoothing: antialiased;
+      }
+      .card {
+        position: relative;
+        width: var(--w);
+        height: var(--h);
+        overflow: hidden;
+        background:
+          radial-gradient(ellipse 60% 70% at 50% 110%, rgb(198 255 61 / 0.22), transparent 65%),
+          radial-gradient(ellipse 80% 50% at 50% -10%, rgb(198 255 61 / 0.08), transparent 60%),
+          var(--bg);
+      }
+      /* Faint floor grid, like a platform */
+      .card::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background:
+          linear-gradient(rgb(255 255 255 / 0.035) 1px, transparent 1px) 0 0 / 100% 48px,
+          linear-gradient(90deg, rgb(255 255 255 / 0.035) 1px, transparent 1px) 0 0 / 48px 100%;
+        mask: linear-gradient(180deg, transparent 30%, black 100%);
+        -webkit-mask: linear-gradient(180deg, transparent 30%, black 100%);
+      }
+      .eyebrow {
+        position: absolute;
+        left: 50%;
+        transform: translateX(-50%);
+        font-family: "Archivo", sans-serif;
+        font-weight: 800;
+        letter-spacing: 0.3em;
+        color: var(--accent);
+        text-transform: uppercase;
+      }
+      .title {
+        position: absolute;
+        left: 50%;
+        transform: translateX(-50%);
+        font-family: "Archivo", sans-serif;
+        font-weight: 900;
+        font-stretch: 100%;
+        letter-spacing: -0.035em;
+        line-height: 0.9;
+        white-space: nowrap;
+        color: var(--fg);
+      }
+      .tag {
+        position: absolute;
+        left: 50%;
+        transform: translateX(-50%);
+        color: var(--muted);
+        font-weight: 500;
+        white-space: nowrap;
+      }
+      .chips {
+        position: absolute;
+        left: 50%;
+        transform: translateX(-50%);
+        display: flex;
+        gap: 10px;
+      }
+      .chip {
+        border: 1px solid rgb(255 255 255 / 0.1);
+        background: rgb(255 255 255 / 0.05);
+        border-radius: 999px;
+        padding: 8px 16px;
+        font-family: "Archivo", sans-serif;
+        font-weight: 700;
+        font-size: 15px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+      .chip.on {
+        background: var(--accent);
+        border-color: var(--accent);
+        color: var(--accent-fg);
+        box-shadow: 0 8px 24px rgb(198 255 61 / 0.35);
+      }
+
+      /* Barbell — same construction as the app's .bm-barbell */
+      .bar {
+        position: absolute;
+        left: 50%;
+        transform: translateX(-50%);
+        display: flex;
+        align-items: center;
+        filter: drop-shadow(0 22px 30px rgb(0 0 0 / 0.6));
+      }
+      .side {
+        display: flex;
+        align-items: center;
+      }
+      .side.r {
+        flex-direction: row-reverse;
+      }
+      .shaft {
+        height: 14px;
+        border-radius: 999px;
+        background: repeating-linear-gradient(
+          90deg,
+          #7d838c 0 3px,
+          #a8aeb6 3px 6px,
+          #6f757d 6px 9px
+        );
+        box-shadow:
+          inset 0 2px 0 rgb(255 255 255 / 0.3),
+          inset 0 -3px 5px rgb(0 0 0 / 0.5);
+      }
+      .collar {
+        width: 10px;
+        height: 30px;
+        border-radius: 3px;
+        background: linear-gradient(180deg, #d5d8de, #7c828a);
+        flex-shrink: 0;
+      }
+      .sleeve {
+        width: 18px;
+        height: 18px;
+        border-radius: 999px;
+        background: linear-gradient(180deg, #b4b8be, #5c6168);
+        flex-shrink: 0;
+      }
+      .plate {
+        --ring: #7a2e28;
+        position: relative;
+        display: grid;
+        place-items: center;
+        border-radius: 999px;
+        margin-inline: -9px;
+        flex-shrink: 0;
+        font-family: "Archivo", sans-serif;
+        font-weight: 800;
+        font-stretch: 90%;
+        color: var(--fg);
+        text-shadow: 0 2px 4px rgb(0 0 0 / 0.8);
+        background: radial-gradient(circle at 32% 28%, #3e4248, #16181c 58%, #0c0d10 100%);
+        box-shadow:
+          inset 0 0 0 4px #2f3238,
+          inset 0 0 0 9px var(--ring),
+          inset 0 4px 0 10px rgb(255 255 255 / 0.05),
+          inset 0 -16px 24px rgb(0 0 0 / 0.45),
+          0 10px 18px rgb(0 0 0 / 0.4);
+      }
+      .plate::before {
+        content: "";
+        position: absolute;
+        inset: 6%;
+        border-radius: 999px;
+        background: conic-gradient(
+          from 200deg,
+          transparent 0 20%,
+          rgb(255 255 255 / 0.12) 30%,
+          transparent 42% 100%
+        );
+      }
+      .plate::after {
+        content: "";
+        position: absolute;
+        width: 26%;
+        height: 26%;
+        border-radius: 999px;
+        background: radial-gradient(circle at 40% 36%, #6a7078, #2a2d32);
+        box-shadow: inset 0 0 0 2px rgb(0 0 0 / 0.6);
+      }
+      .plate span {
+        position: relative;
+        z-index: 1;
+      }
+      .xl {
+        width: 150px;
+        height: 150px;
+        font-size: 40px;
+        --ring: #7a2e28;
+      }
+      .md {
+        width: 116px;
+        height: 116px;
+        font-size: 32px;
+        --ring: #3d5a40;
+      }
+      .sm {
+        width: 96px;
+        height: 96px;
+        font-size: 27px;
+        --ring: #c4bfb4;
+      }
+
+      .total {
+        position: absolute;
+        left: 50%;
+        transform: translateX(-50%);
+        font-family: "Archivo", sans-serif;
+        font-weight: 800;
+        font-stretch: 90%;
+        font-variant-numeric: tabular-nums;
+        color: var(--fg);
+        white-space: nowrap;
+      }
+      .total small {
+        font-size: 0.42em;
+        color: var(--muted);
+        margin-left: 0.2em;
+        font-weight: 700;
+      }
+      .total .sum {
+        display: block;
+        font-family: "Inter", sans-serif;
+        font-weight: 600;
+        font-stretch: 100%;
+        font-size: 0.26em;
+        color: var(--accent);
+        letter-spacing: 0.02em;
+        margin-top: 6px;
+        text-align: center;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Filled in by scripts/og-card.mjs -->
+  </body>
+</html>
