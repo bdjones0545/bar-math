@@ -21,6 +21,14 @@ import {
 } from "./grok-pwa-shared.mjs";
 import { renderInstallPage } from "./grok-pwa-plugin.mjs";
 
+// These tests describe the platform template's behaviour in a bare workspace
+// (no src/lib/og/site.json, no public/og.jpg). The head injector defaults
+// `cwd` to process.cwd(), which in this repo carries BAR MATH's real brand
+// files and rightly overrides every template fallback — so pin the process to
+// an empty directory. Tests that need brand files create their own tmp cwd.
+// `node --test` runs each file in its own process, so this is contained.
+process.chdir(mkdtempSync(join(tmpdir(), "grok-pwa-bare-workspace-")));
+
 const TEMPLATE_ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 
 test("injects before </head>", () => {
