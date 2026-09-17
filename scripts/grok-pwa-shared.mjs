@@ -111,9 +111,24 @@ export function publicAppHost(hostHeader) {
  * app — Envoy rewrites it to `*.vercel.app`.
  */
 export function resolvePublicHost(hostHeader) {
-  return (
-    publicAppHost(process.env?.VITE_PUBLIC_HOSTNAME) || publicAppHost(hostHeader)
-  );
+  return publicAppHost(process.env?.VITE_PUBLIC_HOSTNAME) || publicAppHost(hostHeader);
+}
+
+/**
+ * A host the repo declares outright in src/lib/og/site.json (`"host"`). Unlike
+ * the request Host it is not attacker-controlled, so the `*.vercel.app` guard
+ * does not apply: a production alias like `bar-math.vercel.app` serves
+ * /og.jpg publicly, and without this the card would never be linked at all.
+ * Deployment-protected previews are still rejected because they resolve
+ * through the request Host, not this declaration.
+ */
+export function declaredPublicHost(site) {
+  const host = String(site?.host ?? "")
+    .trim()
+    .split(":")[0]
+    .toLowerCase();
+  if (!host || !/^[a-z0-9.-]+$/.test(host) || !host.includes(".")) return "";
+  return host;
 }
 
 export function isInstallQuery(url) {
@@ -323,7 +338,10 @@ export function siteHasCustomCard(site = {}) {
  * Otherwise empty — caller emits the og.grok.me placeholder.
  */
 export function resolveOgCardAsset(site = {}, cwd = process.cwd()) {
-  return ogCardPublicPath(cwd) || (detectCustomOgCard(cwd, site) ? String(site.image ?? "").trim() || "/og.jpg" : "");
+  return (
+    ogCardPublicPath(cwd) ||
+    (detectCustomOgCard(cwd, site) ? String(site.image ?? "").trim() || "/og.jpg" : "")
+  );
 }
 
 /** Stamp `card=custom` when public/og.jpg or public/og.png is on disk. */
@@ -341,7 +359,7 @@ export function grokOgHeadTags({
   cwd = process.cwd(),
 } = {}) {
   const title = resolveOgTitle(site, appName, host, documentTitle);
-  const publicHost = resolvePublicHost(host);
+  const publicHost = declaredPublicHost(site) || resolvePublicHost(host);
   const tags = [
     `<meta name="twitter:card" content="summary_large_image">`,
     `<meta property="og:title" content="${escapeHtml(title)}">`,
@@ -426,12 +444,7 @@ export function injectGrokPwaHead(html, ctx = {}) {
   if (typeof html !== "string") return html;
   const { site, projectId, creator, creatorId, host, cwd } = normalizeHeadContext(ctx);
   const documentTitle = titleFromDocument(html);
-  const appName = resolveOgTitle(
-    site,
-    ctx.appName ?? DEFAULT_APP_NAME,
-    host,
-    documentTitle,
-  );
+  const appName = resolveOgTitle(site, ctx.appName ?? DEFAULT_APP_NAME, host, documentTitle);
   let next = stripShareMetaTags(html);
 
   const missing = grokPwaHeadTags(appName)
