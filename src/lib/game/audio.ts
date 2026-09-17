@@ -136,4 +136,41 @@ export const sfx = {
       tone(ac, 220, 0.08, "triangle", 0.06, dest);
     });
   },
+  /** Soft clock tick for the last seconds of a speed round. */
+  tick() {
+    play((ac, dest) => {
+      tone(ac, 1500, 0.03, "square", 0.035, dest);
+      tone(ac, 300, 0.05, "triangle", 0.05, dest);
+    });
+  },
+  /** Countdown beep (3, 2, 1). */
+  count() {
+    play((ac, dest) => {
+      tone(ac, 660, 0.09, "triangle", 0.12, dest);
+    });
+  },
+  /** "GO" — higher, longer. */
+  go() {
+    play((ac, dest) => {
+      tone(ac, 880, 0.18, "triangle", 0.14, dest);
+      tone(ac, 1320, 0.14, "sine", 0.08, dest);
+    });
+  },
+  /** Level-up fanfare: rising major arpeggio with a bass thump. */
+  levelUp() {
+    play((ac, dest) => {
+      tone(ac, 80, 0.3, "sine", 0.26, dest);
+      const notes = [523, 659, 784, 1047];
+      notes.forEach((f, i) => {
+        setTimeout(() => tone(ac, f, i === notes.length - 1 ? 0.32 : 0.14, "triangle", 0.12, dest), i * 90);
+      });
+    });
+  },
+  /** New personal record — quick double chime. */
+  record() {
+    play((ac, dest) => {
+      tone(ac, 988, 0.1, "triangle", 0.1, dest);
+      setTimeout(() => tone(ac, 1319, 0.2, "triangle", 0.12, dest), 90);
+    });
+  },
 };

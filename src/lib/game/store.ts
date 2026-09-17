@@ -10,10 +10,12 @@ import {
   ACHIEVEMENTS,
   DIFFICULTY_META,
   formatDelta,
+  levelForXp,
   plateClubId,
   xpForCorrect,
 } from "./progression";
 import { sfx } from "./audio";
+import { haptics } from "./haptics";
 import type {
   Difficulty,
   Feedback,
@@ -52,7 +54,11 @@ export interface Toast {
   id: string;
   title: string;
   detail: string;
+  kind?: "achievement" | "level";
 }
+
+export const SPEED_INTRO_MS = 3000;
+export const SPEED_ROUND_MS = 60000;
 
 export interface GameState {
   hydrated: boolean;
@@ -106,6 +112,7 @@ export interface GameState {
   goHome: () => void;
   addPlate: (cents: number) => void;
   removePlate: (id: string) => void;
+  undoPlate: () => void;
   clearBar: () => void;
   setIdentifyInput: (v: string) => void;
   checkAnswer: () => void;
@@ -125,7 +132,8 @@ export interface GameState {
 }
 
 const emptySpeed = (): SpeedSession => ({
-  remainingMs: 60000,
+  introMs: SPEED_INTRO_MS,
+  remainingMs: SPEED_ROUND_MS,
   correct: 0,
   incorrect: 0,
   score: 0,
@@ -362,6 +370,7 @@ export const useGameStore = create<GameState>()(
         const allowed = specFor(s.unit).plates;
         if (!allowed.some((p) => p.cents === cents)) return;
         sfx.plate();
+        haptics.plate();
         set({
           sidePlates: [...s.sidePlates, newPlate(cents)],
           impact: s.impact + 1,
@@ -370,11 +379,22 @@ export const useGameStore = create<GameState>()(
 
       removePlate: (id) => {
         sfx.remove();
+        haptics.remove();
         set({ sidePlates: get().sidePlates.filter((p) => p.id !== id) });
       },
 
+      undoPlate: () => {
+        const s = get();
+        if (s.sidePlates.length === 0) return;
+        sfx.remove();
+        haptics.remove();
+        set({ sidePlates: s.sidePlates.slice(0, -1) });
+      },
+
       clearBar: () => {
+        if (get().sidePlates.length === 0) return;
         sfx.click();
+        haptics.remove();
         set({ sidePlates: [] });
       },
 
@@ -423,15 +443,63 @@ export const useGameStore = create<GameState>()(
           if (nextStreak >= 25 && !s.achievements.includes("human-calculator")) {
             unlocked.push("human-calculator");
           }
+          if (
+            s.difficulty === "elite" &&
+            nextStreak >= 5 &&
+            !s.achievements.includes("elite-5")
+          ) {
+            unlocked.push("elite-5");
+          }
+          if (
+            round.kind === "load" &&
+            attempts === 1 &&
+            elapsed < 3000 &&
+            !s.achievements.includes("under-3")
+          ) {
+            unlocked.push("under-3");
+          }
           const newAchievements = [...s.achievements, ...unlocked];
-          const toasts = [
+          const toasts: Toast[] = [
             ...s.toasts,
             ...unlocked.map((id) => {
               const def = ACHIEVEMENTS.find((a) => a.id === id)!;
-              return { id: `${id}-${Date.now()}`, title: def.name, detail: def.detail };
+              return {
+                id: `${id}-${Date.now()}`,
+                title: def.name,
+                detail: def.detail,
+                kind: "achievement" as const,
+              };
             }),
           ];
-          sfx.correct();
+
+          const before = levelForXp(s.xp).current;
+          const after = levelForXp(s.xp + xp).current;
+          const leveledUp = before.id !== after.id;
+          if (leveledUp) {
+            toasts.push({
+              id: `level-${after.id}-${Date.now()}`,
+              title: `LEVEL UP — ${after.name}`,
+              detail: "Keep loading. The bar only gets heavier.",
+              kind: "level",
+            });
+          }
+
+          // Only first-try solves count toward "fastest", and only outside the
+          // speed round where the clock is the game itself.
+          const countsForFastest = attempts === 1 && !s.speed?.running;
+          const newFastest =
+            countsForFastest && (s.fastestMs === null || elapsed < s.fastestMs);
+
+          if (leveledUp) {
+            sfx.levelUp();
+            haptics.levelUp();
+          } else if (newFastest && s.fastestMs !== null) {
+            sfx.record();
+            haptics.correct();
+          } else {
+            sfx.correct();
+            haptics.correct();
+          }
           if (nextStreak > 0 && nextStreak % 5 === 0) sfx.streak();
 
           const speedPatch: Partial<GameState> = {};
@@ -459,12 +527,7 @@ export const useGameStore = create<GameState>()(
             xp: s.xp + xp,
             currentStreak: s.speed?.running ? s.currentStreak : nextStreak,
             longestStreak: Math.max(s.longestStreak, nextStreak, s.speed?.bestStreak ?? 0),
-            fastestMs:
-              attempts === 1
-                ? s.fastestMs === null
-                  ? elapsed
-                  : Math.min(s.fastestMs, elapsed)
-                : s.fastestMs,
+            fastestMs: newFastest ? elapsed : s.fastestMs,
             achievements: newAchievements,
             toasts,
             tutorialComplete: s.tutorialStep >= 2 ? true : s.tutorialComplete,
@@ -475,6 +538,9 @@ export const useGameStore = create<GameState>()(
               deltaCents: 0,
               xpGained: xp,
               streak: nextStreak,
+              // A first-ever solve is a record too, but announcing it is noise.
+              newFastest: newFastest && s.fastestMs !== null,
+              elapsedMs: elapsed,
               explanation,
             },
             impact: s.impact + 1,
@@ -484,6 +550,7 @@ export const useGameStore = create<GameState>()(
         }
 
         sfx.wrong();
+        haptics.wrong();
         const delta = loadedCents - round.targetCents;
         const speedPatch: Partial<GameState> = {};
         if (s.speed?.running) {
@@ -539,10 +606,38 @@ export const useGameStore = create<GameState>()(
       tick: (dtMs) => {
         const s = get();
         if (s.speed?.running) {
+          if (s.speed.introMs > 0) {
+            const introLeft = s.speed.introMs - dtMs;
+            const beforeSec = Math.ceil(s.speed.introMs / 1000);
+            const afterSec = Math.ceil(Math.max(0, introLeft) / 1000);
+            if (introLeft <= 0) {
+              sfx.go();
+              haptics.correct();
+              // The round clock and the per-round stopwatch both start on GO.
+              set({
+                speed: { ...s.speed, introMs: 0 },
+                roundStartedAt: Date.now(),
+                round: s.round ? { ...s.round, startedAt: Date.now() } : s.round,
+              });
+              return;
+            }
+            if (afterSec < beforeSec) {
+              sfx.count();
+              haptics.tick();
+            }
+            set({ speed: { ...s.speed, introMs: introLeft } });
+            return;
+          }
           const remaining = s.speed.remainingMs - dtMs;
           if (remaining <= 0) {
             get().finishSpeed();
             return;
+          }
+          const beforeSec = Math.ceil(s.speed.remainingMs / 1000);
+          const afterSec = Math.ceil(remaining / 1000);
+          if (afterSec < beforeSec && afterSec <= 10 && !s.feedback) {
+            sfx.tick();
+            haptics.tick();
           }
           set({ speed: { ...s.speed, remainingMs: remaining } });
         }
@@ -573,10 +668,35 @@ export const useGameStore = create<GameState>()(
         const s = get();
         if (!s.speed) return;
         const best = Math.max(s.bestSpeedScore, s.speed.score);
+        const unlocked: string[] = [];
+        if (s.speed.score >= 1000 && !s.achievements.includes("speed-1000")) {
+          unlocked.push("speed-1000");
+        }
+        if (s.speed.score >= 2000 && !s.achievements.includes("speed-2000")) {
+          unlocked.push("speed-2000");
+        }
+        const toasts: Toast[] = [
+          ...s.toasts,
+          ...unlocked.map((id) => {
+            const def = ACHIEVEMENTS.find((a) => a.id === id)!;
+            return {
+              id: `${id}-${Date.now()}`,
+              title: def.name,
+              detail: def.detail,
+              kind: "achievement" as const,
+            };
+          }),
+        ];
+        if (s.speed.score > 0 && s.speed.score > s.bestSpeedScore) {
+          sfx.record();
+          haptics.levelUp();
+        }
         set({
           speed: { ...s.speed, remainingMs: 0, running: false },
           bestSpeedScore: best,
           longestStreak: Math.max(s.longestStreak, s.speed.bestStreak),
+          achievements: [...s.achievements, ...unlocked],
+          toasts,
           feedback: null,
         });
       },

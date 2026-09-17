@@ -64,6 +64,10 @@ export const ACHIEVEMENTS: AchievementDef[] = [
     name: "Human Calculator",
     detail: "25 questions with a perfect streak.",
   },
+  { id: "speed-1000", name: "Speed Runner", detail: "Score 1,000 in a Speed Round." },
+  { id: "speed-2000", name: "Speed Demon", detail: "Score 2,000 in a Speed Round." },
+  { id: "elite-5", name: "Elite Five", detail: "5 in a row on Elite difficulty." },
+  { id: "under-3", name: "Snap Count", detail: "Solve a load first try in under 3 seconds." },
 ];
 
 export function plateClubId(unit: Unit, targetCents: number): string | null {

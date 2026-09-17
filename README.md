@@ -11,4 +11,6 @@ Instant-play barbell plate math for athletes, lifters, coaches, and beginners. N
 
 LB and KG Olympic plates. Progress saves on this device.
 
+**Keyboard (Load the Bar):** `1`–`7` rack a plate, `Backspace` undo, `Enter` check, `Esc` clear.
+
 Load both sides. Count the bar.

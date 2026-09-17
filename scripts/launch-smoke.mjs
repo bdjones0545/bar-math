@@ -153,12 +153,12 @@ for (const [name, expect] of [
     tx.includes("Speed") ||
     tx.includes("TRAINER") ||
     tx.includes("Trainer") ||
-    tx.includes("pts")
+    /pts/i.test(tx)
   ) {
     ok("3 " + name);
   } else fail("3 " + name + " " + tx.slice(0, 80).replace(/\n/g, " "));
   if (name === "Speed Round") {
-    if (tx.includes("pts") || /[0-9]+s/.test(tx)) ok("12 speed timer");
+    if (/pts/i.test(tx) || /[0-9]+s/i.test(tx)) ok("12 speed timer");
     else {
       const bar = await p.locator(".bg-accent").count();
       if (bar) ok("12 speed timer bar");

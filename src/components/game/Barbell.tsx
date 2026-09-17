@@ -55,23 +55,34 @@ export function Barbell({
   unit,
   plates,
   interactive = false,
+  animate,
   onRemove,
   hit = false,
+  miss = false,
   className,
 }: {
   unit: Unit;
   plates: LoadedPlate[] | number[];
   interactive?: boolean;
+  /** Slide plates on as they appear. Defaults to `interactive`. */
+  animate?: boolean;
   onRemove?: (id: string) => void;
   hit?: boolean;
+  /** Wrong answer — rattles the whole bar. */
+  miss?: boolean;
   className?: string;
 }) {
   const loaded: LoadedPlate[] = plates.map((p, i) =>
     typeof p === "number" ? { id: `static-${p}-${i}`, cents: p } : p,
   );
+  const slide = animate ?? interactive;
 
   return (
-    <div className={cn("bm-barbell", hit && "is-hit", className)} role="img" aria-label="Olympic barbell">
+    <div
+      className={cn("bm-barbell", hit && "is-hit", miss && "bm-shake", className)}
+      role="img"
+      aria-label="Olympic barbell"
+    >
       <div className="bm-sleeve" aria-hidden="true" />
       <div className="bm-side bm-side-left">
         {loaded.map((p, i) => (
@@ -79,7 +90,7 @@ export function Barbell({
             key={`L-${p.id}`}
             cents={p.cents}
             unit={unit}
-            animate={interactive}
+            animate={slide}
             delay={i * 40}
             onClick={interactive && onRemove ? () => onRemove(p.id) : undefined}
           />
@@ -94,7 +105,7 @@ export function Barbell({
             key={`R-${p.id}`}
             cents={p.cents}
             unit={unit}
-            animate={interactive}
+            animate={slide}
             delay={i * 40}
             onClick={interactive && onRemove ? () => onRemove(p.id) : undefined}
           />
