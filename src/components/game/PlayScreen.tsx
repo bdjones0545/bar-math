@@ -1,17 +1,18 @@
-import { useEffect, useMemo } from "react";
-import { ChevronLeft, Flame, Volume2, VolumeX } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { ChevronLeft, Flame, Timer, Undo2, Volume2, VolumeX, Zap } from "lucide-react";
 import { UnitToggle } from "@/components/game/UnitToggle";
 import { Barbell } from "@/components/game/Barbell";
 import { PlateRack } from "@/components/game/PlateRack";
 import { NumberPad } from "@/components/game/NumberPad";
 import { Button } from "@/components/ui/button";
-import { useGameStore } from "@/lib/game/store";
-import { barTotal, formatWeight, specFor } from "@/lib/game/plates";
+import { SPEED_ROUND_MS, useGameStore } from "@/lib/game/store";
+import { barTotal, formatWeight, platesForUnit, specFor } from "@/lib/game/plates";
 import { formatDelta } from "@/lib/game/progression";
 import { trainerCurriculum } from "@/lib/game/math";
 import { cn } from "@/lib/utils";
 import { SpeedSubmit } from "@/components/game/SpeedSubmit";
 import { useLeaderboardTicket } from "@/lib/leaderboard/useTicket";
+import type { Difficulty, Unit } from "@/lib/game/types";
 
 const MODE_LABEL: Record<string, string> = {
   load: "Load the Bar",
@@ -19,6 +20,15 @@ const MODE_LABEL: Record<string, string> = {
   speed: "Speed Round",
   trainer: "Plate Math Trainer",
 };
+
+/** Rookie and Athlete get the "to go" readout; Coach and Elite do the math themselves. */
+function showsGuidance(difficulty: Difficulty): boolean {
+  return difficulty === "rookie" || difficulty === "athlete";
+}
+
+function fmtSeconds(ms: number): string {
+  return `${(Math.max(0, ms) / 1000).toFixed(1)}s`;
+}
 
 export function PlayScreen() {
   const unit = useGameStore((s) => s.unit);
@@ -33,9 +43,12 @@ export function PlayScreen() {
   const speed = useGameStore((s) => s.speed);
   const eliteRemainingMs = useGameStore((s) => s.eliteRemainingMs);
   const impact = useGameStore((s) => s.impact);
+  const roundStartedAt = useGameStore((s) => s.roundStartedAt);
+  const fastestMs = useGameStore((s) => s.fastestMs);
   const goHome = useGameStore((s) => s.goHome);
   const addPlate = useGameStore((s) => s.addPlate);
   const removePlate = useGameStore((s) => s.removePlate);
+  const undoPlate = useGameStore((s) => s.undoPlate);
   const clearBar = useGameStore((s) => s.clearBar);
   const setIdentifyInput = useGameStore((s) => s.setIdentifyInput);
   const checkAnswer = useGameStore((s) => s.checkAnswer);
@@ -48,6 +61,7 @@ export function PlayScreen() {
   const lb = useLeaderboardTicket("bar", Boolean(speed?.running));
 
   const spec = specFor(unit);
+  const inIntro = Boolean(speed?.running && speed.introMs > 0);
   const clockOn = Boolean(speed?.running) || (eliteRemainingMs !== null && !feedback);
 
   useEffect(() => {
@@ -70,6 +84,43 @@ export function PlayScreen() {
     return c;
   }, [sidePlates]);
 
+  const locked = Boolean(feedback) || inIntro;
+  const kind = round?.kind;
+
+  // Keyboard: 1–7 rack plates, Backspace undo, Enter check, Escape clear.
+  // The NumberPad owns the keyboard in identify rounds.
+  useEffect(() => {
+    if (kind !== "load") return;
+    const rack = platesForUnit(unit);
+    function onKey(e: KeyboardEvent) {
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      if (feedback) {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          dismissFeedback();
+        }
+        return;
+      }
+      if (inIntro) return;
+      const n = Number.parseInt(e.key, 10);
+      if (n >= 1 && n <= rack.length) {
+        e.preventDefault();
+        addPlate(rack[n - 1]!.cents);
+      } else if (e.key === "Backspace") {
+        e.preventDefault();
+        undoPlate();
+      } else if (e.key === "Enter") {
+        e.preventDefault();
+        checkAnswer();
+      } else if (e.key === "Escape") {
+        e.preventDefault();
+        clearBar();
+      }
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [kind, unit, feedback, inIntro, addPlate, undoPlate, checkAnswer, clearBar, dismissFeedback]);
+
   if (speed && !speed.running) {
     const asked = speed.correct + speed.incorrect;
     const acc = asked === 0 ? 0 : Math.round((speed.correct / asked) * 100);
@@ -78,7 +129,7 @@ export function PlayScreen() {
         <Header onBack={goHome} muted={muted} onMute={() => setMuted(!muted)} title="Speed Round" />
         <div className="flex-1 flex flex-col items-center justify-center text-center max-w-md mx-auto w-full">
           <p className="font-display tracking-[0.28em] text-muted text-sm">SESSION COMPLETE</p>
-          <p className="mt-2 font-display text-6xl tabular-nums">{speed.score}</p>
+          <p className="bm-pop mt-2 font-display text-7xl tabular-nums">{speed.score}</p>
           <p className="text-muted mt-1">Score</p>
           <dl className="mt-8 grid grid-cols-2 gap-3 w-full text-left">
             <Stat label="Correct" value={String(speed.correct)} />
@@ -114,19 +165,18 @@ export function PlayScreen() {
     );
   }
 
-  const kind = round.kind;
   const currentCents = barTotal(spec.barCents, sidePlates.map((p) => p.cents));
   const equal = currentCents === round.targetCents;
-  const over = currentCents > round.targetCents;
   const streak = speed?.running ? speed.streak : currentStreak;
+  const guided = showsGuidance(difficulty);
   const timerFrac =
     kind === "load" && eliteRemainingMs !== null && round.timedMs
       ? eliteRemainingMs / round.timedMs
       : speed?.running
-        ? speed.remainingMs / 60000
+        ? speed.remainingMs / SPEED_ROUND_MS
         : null;
-
-  const locked = Boolean(feedback);
+  const urgent = timerFrac !== null && timerFrac < 0.17;
+  const showStopwatch = !speed && eliteRemainingMs === null;
 
   return (
     <div className="gym-shell flex flex-col h-dvh overflow-hidden px-4 pt-[max(0.75rem,env(safe-area-inset-top))] pb-[max(0.75rem,env(safe-area-inset-bottom))]">
@@ -136,21 +186,26 @@ export function PlayScreen() {
         onMute={() => setMuted(!muted)}
         title={MODE_LABEL[mode] ?? "BAR MATH"}
         streak={streak}
+        right={
+          showStopwatch ? (
+            <Stopwatch startedAt={roundStartedAt} running={!feedback} bestMs={fastestMs} />
+          ) : null
+        }
       />
 
       {timerFrac !== null ? (
-        <div className="mt-3 h-1 rounded-full bg-surface-2 overflow-hidden">
+        <div className="mt-3 bm-timer">
           <div
-            className={cn("h-full rounded-full bg-accent", timerFrac < 0.2 && "bg-danger")}
+            className={cn("bm-timer-fill", urgent && "is-urgent")}
             style={{ width: `${Math.max(0, timerFrac * 100)}%` }}
           />
         </div>
       ) : null}
 
       {speed?.running ? (
-        <div className="mt-2 flex justify-between text-[11px] uppercase tracking-[0.16em] text-muted tabular-nums">
-          <span>{Math.ceil(speed.remainingMs / 1000)}s</span>
-          <span>{speed.score} pts</span>
+        <div className="mt-2 flex justify-between font-display text-sm uppercase tracking-[0.16em] text-muted tabular-nums">
+          <span className={cn(urgent && "bm-urgent")}>{Math.ceil(speed.remainingMs / 1000)}s</span>
+          <span className="text-fg">{speed.score} pts</span>
         </div>
       ) : null}
 
@@ -181,31 +236,31 @@ export function PlayScreen() {
         )}
       </div>
 
-      <div className="mt-4">
+      <div className="mt-4 relative">
         <Barbell
+          key={feedback?.kind === "wrong" || feedback?.kind === "timeout" ? `miss-${impact}` : "bar"}
           unit={unit}
           plates={kind === "load" ? sidePlates : round.shownPlates}
           interactive={kind === "load" && !locked}
           onRemove={kind === "load" ? removePlate : undefined}
           hit={feedback?.kind === "correct" || feedback?.kind === "math"}
+          miss={feedback?.kind === "wrong" || feedback?.kind === "timeout"}
         />
         <div className="gym-floor mt-3" />
+        {feedback && (feedback.kind === "correct" || feedback.kind === "math") && feedback.xpGained ? (
+          <p key={`xp-${impact}`} className="bm-float" aria-hidden="true">
+            +{feedback.xpGained} XP
+          </p>
+        ) : null}
       </div>
 
       {kind === "load" ? (
-        <div className="mt-4 text-center">
-          <p
-            className={cn(
-              "font-display text-xl tracking-wide tabular-nums",
-              equal && difficulty !== "elite" ? "text-success" : over ? "text-danger" : "text-fg",
-            )}
-          >
-            Current weight: {formatWeight(currentCents)} {spec.suffix}
-          </p>
-          <p className="mt-1 text-[11px] uppercase tracking-[0.18em] text-subtle">
-            Both sides load together
-          </p>
-        </div>
+        <LoadReadout
+          unit={unit}
+          currentCents={currentCents}
+          targetCents={round.targetCents}
+          guided={guided}
+        />
       ) : (
         <p className="mt-4 text-center text-[11px] uppercase tracking-[0.18em] text-subtle">
           {spec.barLabel} {spec.suffix} bar · plates each side
@@ -219,19 +274,34 @@ export function PlayScreen() {
       <div className="mt-auto pt-3">
         {kind === "load" ? (
           <>
-            <PlateRack
-              unit={unit}
-              counts={counts}
-              disabled={locked}
-              onAdd={addPlate}
-            />
-            <div className="mt-3 flex flex-col gap-1.5 max-w-md mx-auto">
-              <Button className="w-full" onClick={checkAnswer} disabled={locked}>
+            <PlateRack unit={unit} counts={counts} disabled={locked} onAdd={addPlate} />
+            <div className="mt-4 max-w-md mx-auto">
+              <Button
+                className={cn("w-full", equal && guided && !locked && "bm-ready")}
+                onClick={checkAnswer}
+                disabled={locked}
+              >
                 Check Answer
               </Button>
-              <Button className="w-full" variant="ghost" onClick={clearBar} disabled={locked}>
-                Clear Bar
-              </Button>
+              <div className="mt-1.5 grid grid-cols-2 gap-1.5">
+                <Button
+                  variant="ghost"
+                  size="md"
+                  onClick={undoPlate}
+                  disabled={locked || sidePlates.length === 0}
+                >
+                  <Undo2 className="size-4" />
+                  Undo
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="md"
+                  onClick={clearBar}
+                  disabled={locked || sidePlates.length === 0}
+                >
+                  Clear Bar
+                </Button>
+              </div>
             </div>
           </>
         ) : (
@@ -244,6 +314,8 @@ export function PlayScreen() {
           />
         )}
       </div>
+
+      {inIntro && speed ? <Countdown introMs={speed.introMs} /> : null}
 
       {feedback ? (
         <FeedbackCard
@@ -258,18 +330,125 @@ export function PlayScreen() {
   );
 }
 
+function LoadReadout({
+  unit,
+  currentCents,
+  targetCents,
+  guided,
+}: {
+  unit: Unit;
+  currentCents: number;
+  targetCents: number;
+  guided: boolean;
+}) {
+  const spec = specFor(unit);
+  const delta = targetCents - currentCents;
+  const on = delta === 0;
+  const over = delta < 0;
+  // Bar fills toward the target; overshoot pins full and turns red.
+  const frac = Math.min(1, (currentCents - spec.barCents) / Math.max(1, targetCents - spec.barCents));
+
+  return (
+    <div className="bm-readout mt-4">
+      <p
+        className={cn(
+          "font-display text-xl tracking-wide tabular-nums",
+          on ? "text-success" : over ? "text-danger" : "text-fg",
+        )}
+      >
+        Current weight: {formatWeight(currentCents)} {spec.suffix}
+      </p>
+      {guided ? (
+        <>
+          <p
+            className={cn("bm-readout-status", on && "is-on", over && "is-over")}
+            aria-live="polite"
+          >
+            {on ? (
+              <>
+                <Zap className="size-3.5" /> On target — check it
+              </>
+            ) : over ? (
+              `Over by ${formatWeight(-delta)} ${spec.suffix}`
+            ) : (
+              `${formatWeight(delta)} ${spec.suffix} to go`
+            )}
+          </p>
+          <div className="bm-progress" aria-hidden="true">
+            <div
+              className={cn("bm-progress-fill", on && "is-on", over && "is-over")}
+              style={{ width: `${Math.max(0, frac) * 100}%` }}
+            />
+            <div className="bm-progress-tick" style={{ right: 0 }} />
+          </div>
+        </>
+      ) : (
+        <p className="mt-1 text-[11px] uppercase tracking-[0.18em] text-subtle">
+          Both sides load together
+        </p>
+      )}
+    </div>
+  );
+}
+
+function Stopwatch({
+  startedAt,
+  running,
+  bestMs,
+}: {
+  startedAt: number;
+  running: boolean;
+  bestMs: number | null;
+}) {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    if (!running) return;
+    const id = window.setInterval(() => setNow(Date.now()), 100);
+    return () => window.clearInterval(id);
+  }, [running, startedAt]);
+  const elapsed = (running ? now : Date.now()) - startedAt;
+  return (
+    <span
+      className="stat-chip bm-clock"
+      title={bestMs !== null ? `Fastest ${fmtSeconds(bestMs)}` : "Round time"}
+      aria-label={`Round time ${fmtSeconds(elapsed)}`}
+    >
+      <Timer className="size-3.5 text-accent" />
+      {fmtSeconds(elapsed)}
+    </span>
+  );
+}
+
+function Countdown({ introMs }: { introMs: number }) {
+  const n = Math.ceil(introMs / 1000);
+  const label = n <= 0 ? "GO" : String(n);
+  return (
+    <div className="bm-countdown" role="status" aria-live="assertive">
+      <div className="text-center">
+        <p className="font-display text-xs tracking-[0.42em] text-muted">SPEED ROUND</p>
+        <p key={label} className={cn("bm-countdown-num", label === "GO" && "is-go")}>
+          {label}
+        </p>
+        <p className="text-sm text-muted">60 seconds. Stay accurate.</p>
+      </div>
+    </div>
+  );
+}
+
 function Header({
   onBack,
   muted,
   onMute,
   title,
   streak,
+  right,
 }: {
   onBack: () => void;
   muted: boolean;
   onMute: () => void;
   title: string;
   streak?: number;
+  right?: React.ReactNode;
 }) {
   return (
     <>
@@ -297,11 +476,16 @@ function Header({
           </button>
         </div>
       </header>
-      {streak && streak > 0 ? (
-        <p className="stat-chip mx-auto mt-2">
-          <Flame className="size-3.5 text-accent" />
-          {streak} streak
-        </p>
+      {(streak && streak > 0) || right ? (
+        <div className="mt-2 flex items-center justify-center gap-2">
+          {streak && streak > 0 ? (
+            <p className={cn("stat-chip", streak >= 5 && "text-fg border-accent/40")}>
+              <Flame className={cn("size-3.5 text-accent", streak >= 10 && "text-danger")} />
+              {streak} streak
+            </p>
+          ) : null}
+          {right}
+        </div>
       ) : null}
     </>
   );
@@ -322,7 +506,7 @@ function FeedbackCard({
   onContinue,
   speed,
 }: {
-  unit: ReturnType<typeof specFor>["id"];
+  unit: Unit;
   feedback: NonNullable<ReturnType<typeof useGameStore.getState>["feedback"]>;
   onContinue: () => void;
   speed: boolean;
@@ -332,10 +516,28 @@ function FeedbackCard({
 
   useEffect(() => {
     if (!isWin) return;
-    const ms = speed ? 700 : feedback.kind === "math" ? 2600 : 1200;
+    const ms = speed ? 650 : feedback.kind === "math" ? 2600 : 1200;
     const t = window.setTimeout(onContinue, ms);
     return () => window.clearTimeout(t);
   }, [isWin, speed, feedback.kind, onContinue]);
+
+  // Speed round wins never block the bar — a banner glides past and the next
+  // round is already loading underneath it.
+  if (isWin && speed) {
+    return (
+      <div className="bm-banner" role="status">
+        <div className="bm-banner-card">
+          <span className="font-display tracking-[0.14em] text-fg">NAILED IT</span>
+          {feedback.streak && feedback.streak >= 2 ? (
+            <span className="inline-flex items-center gap-1 text-xs uppercase tracking-[0.16em] text-accent">
+              <Flame className="size-3.5" />
+              {feedback.streak}
+            </span>
+          ) : null}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="fixed inset-0 z-40 grid place-items-center bg-bg/70 px-5" onClick={onContinue}>
@@ -348,14 +550,25 @@ function FeedbackCard({
         {isWin ? (
           <>
             <p className="font-display text-4xl tracking-[0.14em] text-fg">NAILED IT</p>
-            {feedback.streak && feedback.streak >= 2 ? (
-              <p className="mt-2 inline-flex items-center gap-1 text-sm uppercase tracking-[0.18em] text-accent">
-                <Flame className="size-4" />
-                {feedback.streak} streak
+            <div className="mt-2 flex flex-wrap items-center justify-center gap-x-3 gap-y-1">
+              {feedback.streak && feedback.streak >= 2 ? (
+                <p className="inline-flex items-center gap-1 text-sm uppercase tracking-[0.18em] text-accent">
+                  <Flame className="size-4" />
+                  {feedback.streak} streak
+                </p>
+              ) : null}
+              {feedback.xpGained ? (
+                <p className="text-muted text-sm tabular-nums">+{feedback.xpGained} XP</p>
+              ) : null}
+              {feedback.elapsedMs !== undefined ? (
+                <p className="text-muted text-sm tabular-nums">{fmtSeconds(feedback.elapsedMs)}</p>
+              ) : null}
+            </div>
+            {feedback.newFastest ? (
+              <p className="mt-3 inline-flex items-center gap-1.5 font-display tracking-[0.18em] text-accent">
+                <Zap className="size-4" />
+                NEW FASTEST
               </p>
-            ) : null}
-            {feedback.xpGained ? (
-              <p className="mt-2 text-muted text-sm tabular-nums">+{feedback.xpGained} XP</p>
             ) : null}
             {feedback.kind === "math" && feedback.explanation ? (
               <div className="mt-5 text-sm text-muted space-y-1">

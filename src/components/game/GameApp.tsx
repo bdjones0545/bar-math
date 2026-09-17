@@ -10,6 +10,7 @@ import { BonesScreen } from "@/components/bones/BonesScreen";
 import { LeaderboardScreen } from "@/components/game/LeaderboardScreen";
 import { useGameStore } from "@/lib/game/store";
 import { setMuted, unlockAudio } from "@/lib/game/audio";
+import { cn } from "@/lib/utils";
 
 export function GameApp() {
   const hydrated = useGameStore((s) => s.hydrated);
@@ -62,7 +63,10 @@ export function GameApp() {
 
   useEffect(() => {
     if (toasts.length === 0) return;
-    const t = window.setTimeout(() => dismissToast(toasts[0]!.id), 2800);
+    const t = window.setTimeout(
+      () => dismissToast(toasts[0]!.id),
+      toasts[0]!.kind === "level" ? 3600 : 2800,
+    );
     return () => window.clearTimeout(t);
   }, [toasts, dismissToast]);
 
@@ -90,7 +94,12 @@ export function GameApp() {
       {screen === "leaderboards" && <LeaderboardScreen />}
       {toasts[0] ? (
         <div className="fixed top-[max(1rem,env(safe-area-inset-top))] inset-x-0 z-50 flex justify-center px-4 pointer-events-none">
-          <div className="bm-pop pointer-events-auto rounded-2xl border border-border bg-surface px-4 py-3 shadow-panel max-w-sm w-full">
+          <div
+            className={cn(
+              "bm-pop pointer-events-auto rounded-2xl border border-border bg-surface px-4 py-3 shadow-panel max-w-sm w-full",
+              toasts[0].kind === "level" && "bm-toast-level",
+            )}
+          >
             <p className="font-display tracking-wide">{toasts[0].title}</p>
             <p className="text-sm text-muted">{toasts[0].detail}</p>
           </div>

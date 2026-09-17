@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import {
   ArrowLeftRight,
   Bone,
@@ -17,9 +18,10 @@ import { Button } from "@/components/ui/button";
 import { UnitToggle } from "@/components/game/UnitToggle";
 import { Barbell } from "@/components/game/Barbell";
 import { useGameStore } from "@/lib/game/store";
-import { specFor } from "@/lib/game/plates";
+import { formatWeight, specFor } from "@/lib/game/plates";
 import { levelForXp } from "@/lib/game/progression";
-import type { Mode } from "@/lib/game/types";
+import { CANONICAL_LOADS, comboPhrase } from "@/lib/game/math";
+import type { Mode, Unit } from "@/lib/game/types";
 
 const MODES: {
   id: Mode;
@@ -33,18 +35,47 @@ const MODES: {
   { id: "trainer", name: "Plate Math Trainer", detail: "Memorize the standards", icon: GraduationCap },
 ];
 
+const HERO_STEP_MS = 2600;
+
+/** Cycles the hero barbell through the standard loads for the current unit. */
+function useHeroLoad(unit: Unit) {
+  const loads = CANONICAL_LOADS.filter((l) => l.unit === unit);
+  const [i, setI] = useState(1);
+  useEffect(() => {
+    setI(1);
+  }, [unit]);
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const id = window.setInterval(() => {
+      if (document.visibilityState !== "visible") return;
+      setI((n) => (n + 1) % loads.length);
+    }, HERO_STEP_MS);
+    return () => window.clearInterval(id);
+  }, [loads.length]);
+  return loads[i % loads.length]!;
+}
+
 export function HomeScreen() {
   const unit = useGameStore((s) => s.unit);
   const xp = useGameStore((s) => s.xp);
   const longestStreak = useGameStore((s) => s.longestStreak);
+  const bestSpeedScore = useGameStore((s) => s.bestSpeedScore);
+  const fastestMs = useGameStore((s) => s.fastestMs);
+  const trainerIndex = useGameStore((s) => s.trainerIndex);
   const muted = useGameStore((s) => s.muted);
   const startMode = useGameStore((s) => s.startMode);
   const setMuted = useGameStore((s) => s.setMuted);
   const setScreen = useGameStore((s) => s.setScreen);
   const spec = specFor(unit);
-  const big = spec.plates[0]!.cents;
-  const hero = [big, big];
+  const hero = useHeroLoad(unit);
   const level = levelForXp(xp);
+  const cardStat: Partial<Record<Mode, string | null>> = {
+    load: fastestMs !== null ? `Fastest ${(fastestMs / 1000).toFixed(1)}s` : null,
+    identify: longestStreak > 0 ? `Best streak ${longestStreak}` : null,
+    speed: bestSpeedScore > 0 ? `Best ${bestSpeedScore}` : null,
+    trainer: trainerIndex > 0 ? `Lesson ${trainerIndex + 1}` : null,
+  };
 
   return (
     <div className="gym-shell flex flex-col px-5 pb-10 pt-[max(1.25rem,env(safe-area-inset-top))]">
@@ -80,8 +111,17 @@ export function HomeScreen() {
       </div>
 
       <div className="mt-6">
-        <Barbell unit={unit} plates={hero} />
+        <Barbell key={`${unit}-${hero.label}`} unit={unit} plates={hero.plates} animate />
         <div className="gym-floor mt-4" />
+        <div key={hero.label} className="bm-hero-caption mt-4 text-center">
+          <p className="font-display text-3xl tabular-nums leading-none">
+            {formatWeight(spec.barCents + hero.plates.reduce((a, b) => a + b, 0) * 2)}
+            <span className="ml-1.5 text-base text-muted">{spec.suffix}</span>
+          </p>
+          <p className="mt-1 text-[11px] uppercase tracking-[0.18em] text-subtle">
+            {comboPhrase(unit, hero.plates)}
+          </p>
+        </div>
       </div>
 
       <div className="mt-6 max-w-md mx-auto w-full">
@@ -104,6 +144,7 @@ export function HomeScreen() {
               <Icon className="size-5 text-accent" />
               <p className="mt-3 font-display text-base leading-tight tracking-wide text-fg">{m.name}</p>
               <p className="mt-1 text-xs text-muted text-pretty">{m.detail}</p>
+              {cardStat[m.id] ? <p className="bm-card-stat">{cardStat[m.id]}</p> : null}
             </button>
           );
         })}

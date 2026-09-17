@@ -40,6 +40,8 @@ export interface Round {
 }
 
 export interface SpeedSession {
+  /** 3-2-1-GO countdown before the clock starts. 0 once running for real. */
+  introMs: number;
   remainingMs: number;
   correct: number;
   incorrect: number;
@@ -56,6 +58,9 @@ export interface Feedback {
   deltaCents?: number;
   xpGained?: number;
   streak?: number;
+  /** First-try solve faster than any previous one on this device. */
+  newFastest?: boolean;
+  elapsedMs?: number;
   explanation?: {
     lines: string[];
     shortcut: string;

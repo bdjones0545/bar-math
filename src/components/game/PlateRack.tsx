@@ -1,4 +1,5 @@
 import { platesForUnit } from "@/lib/game/plates";
+import { cn } from "@/lib/utils";
 import type { Unit } from "@/lib/game/types";
 
 export function PlateRack({
@@ -16,13 +17,13 @@ export function PlateRack({
   const suffix = unit.toUpperCase();
   return (
     <div className="flex flex-wrap justify-center gap-2 sm:gap-4" role="group" aria-label="Available plates">
-      {plates.map((p) => {
+      {plates.map((p, i) => {
         const n = counts[p.cents] ?? 0;
         return (
           <button
             key={p.cents}
             type="button"
-            className="bm-rack-btn"
+            className={cn("bm-rack-btn", n > 0 && "is-loaded")}
             style={{ ["--plate-ring" as string]: p.ring }}
             disabled={disabled}
             onClick={() => onAdd(p.cents)}
@@ -35,6 +36,10 @@ export function PlateRack({
                 {n}
               </span>
             ) : null}
+            {/* Keyboard hint — only rendered on pointer devices (CSS). */}
+            <span className="bm-rack-key" aria-hidden="true">
+              {i + 1}
+            </span>
           </button>
         );
       })}
