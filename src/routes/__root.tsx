@@ -16,7 +16,7 @@ export const Route = createRootRoute({
         name: "description",
         content: APP_DESC,
       },
-      { name: "theme-color", content: "#0b0c0e" },
+      { name: "theme-color", content: "#08090b" },
       { name: "apple-mobile-web-app-title", content: "BAR MATH" },
       { name: "application-name", content: "BAR MATH" },
     ],
@@ -26,7 +26,7 @@ export const Route = createRootRoute({
       { rel: "preconnect", href: "https://fonts.gstatic.com" },
       {
         rel: "stylesheet",
-        href: "https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Oswald:wght@500;600;700&display=swap",
+        href: "https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..125,500..900&family=Inter:wght@400;500;600;700&display=swap",
       },
       { rel: "stylesheet", href: appCss },
       { rel: "manifest", href: "/__grok/manifest.webmanifest" },

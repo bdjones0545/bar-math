@@ -35,19 +35,21 @@ export function AnatomyScreen() {
         <button
           type="button"
           onClick={goHome}
-          className="size-11 shrink-0 rounded-2xl border border-border bg-surface grid place-items-center text-muted"
+          className="size-11 shrink-0 bm-card rounded-2xl grid place-items-center text-muted"
           aria-label="Back"
         >
           <ChevronLeft className="size-5" />
         </button>
         <div className="flex-1 min-w-0 text-center">
-          <p className="font-display tracking-[0.18em] text-[11px] text-muted">ATHLETE PERFORMANCE LAB</p>
-          <h1 className="font-display tracking-[0.14em] text-lg leading-tight">POKE A MUSCLE</h1>
+          <p className="font-display tracking-[0.04em] text-[11px] text-muted">
+            ATHLETE PERFORMANCE LAB
+          </p>
+          <h1 className="font-display tracking-[0.06em] text-lg leading-tight">POKE A MUSCLE</h1>
         </div>
         <span className="size-11 shrink-0" />
       </header>
 
-      <div className="mt-3 max-w-md mx-auto w-full grid grid-cols-3 gap-1 rounded-2xl bg-surface p-1 border border-border">
+      <div className="mt-3 max-w-md mx-auto w-full grid grid-cols-3 gap-1 rounded-2xl bm-seg p-1">
         {(
           [
             ["poke", "Poke"],
@@ -228,11 +230,7 @@ function Play({
                   key={c.id}
                   type="button"
                   onClick={() => onName(c.id)}
-                  className={cn(
-                    "lab-choice",
-                    showCorrect && "is-correct",
-                    showWrong && "is-wrong",
-                  )}
+                  className={cn("lab-choice", showCorrect && "is-correct", showWrong && "is-wrong")}
                 >
                   {c.label}
                 </button>
@@ -327,7 +325,7 @@ function SpeedPlay({
   if (clock.done) {
     return (
       <div className="mt-6 max-w-md mx-auto w-full text-center overflow-y-auto">
-        <p className="font-display tracking-[0.28em] text-muted text-sm">SESSION COMPLETE</p>
+        <p className="font-display tracking-[0.04em] text-muted text-sm">SESSION COMPLETE</p>
         <p className="bm-pop mt-2 font-display text-7xl tabular-nums">{score}</p>
         <p className="text-muted mt-1">Muscle speed</p>
         <dl className="mt-6 grid grid-cols-2 gap-3 text-left">
@@ -336,7 +334,9 @@ function SpeedPlay({
           <Stat label="Accuracy" value={`${acc}%`} />
           <Stat label="Best streak" value={String(bestStreak)} />
         </dl>
-        <p className="mt-4 text-xs uppercase tracking-[0.16em] text-subtle">Best {Math.max(best, score)}</p>
+        <p className="mt-4 text-xs uppercase tracking-[0.1em] text-subtle">
+          Best {Math.max(best, score)}
+        </p>
         <SpeedSubmit
           mode="muscle"
           ticket={lb.ticket}
@@ -356,9 +356,9 @@ function SpeedPlay({
   if (clock.phase === "idle") {
     return (
       <div className="mt-8 max-w-md mx-auto w-full text-center">
-        <p className="font-display text-3xl tracking-[0.12em]">MUSCLE SPEED ROUND</p>
+        <p className="font-display text-3xl tracking-[0.04em]">MUSCLE SPEED ROUND</p>
         <p className="mt-3 text-muted text-pretty">60 seconds. See the name. Tap the muscle.</p>
-        <p className="mt-4 text-xs uppercase tracking-[0.16em] text-subtle">Best {best}</p>
+        <p className="mt-4 text-xs uppercase tracking-[0.1em] text-subtle">Best {best}</p>
         <Button className="mt-6 w-full" onClick={start}>
           Start
         </Button>
@@ -368,8 +368,10 @@ function SpeedPlay({
 
   return (
     <div className="mt-3 max-w-md mx-auto w-full flex flex-col flex-1 min-h-0">
-      <div className="flex items-center justify-between font-display text-sm uppercase tracking-[0.16em] text-muted tabular-nums">
-        <span className={cn(clock.urgent && "bm-urgent")}>{Math.ceil(clock.remaining / 1000)}s</span>
+      <div className="flex items-center justify-between font-display text-sm uppercase tracking-[0.1em] text-muted tabular-nums">
+        <span className={cn(clock.urgent && "bm-urgent")}>
+          {Math.ceil(clock.remaining / 1000)}s
+        </span>
         <span className="text-fg">{score} pts</span>
         <span className={cn("inline-flex items-center gap-1", streak >= 5 && "text-fg")}>
           {streak} streak
@@ -413,7 +415,11 @@ function SpeedPlay({
         }
       />
       {clock.inIntro ? (
-        <Countdown introMs={clock.intro} title="MUSCLE SPEED" subtitle="See the name. Tap the muscle." />
+        <Countdown
+          introMs={clock.intro}
+          title="MUSCLE SPEED"
+          subtitle="See the name. Tap the muscle."
+        />
       ) : null}
     </div>
   );
@@ -421,8 +427,8 @@ function SpeedPlay({
 
 function Stat({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-2xl border border-border bg-surface p-4">
-      <p className="text-[11px] uppercase tracking-[0.16em] text-muted">{label}</p>
+    <div className="bm-card rounded-2xl p-4">
+      <p className="text-[11px] uppercase tracking-[0.1em] text-muted">{label}</p>
       <p className="mt-1 font-display text-2xl tabular-nums">{value}</p>
     </div>
   );

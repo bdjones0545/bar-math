@@ -98,13 +98,13 @@ export function AnatomyLab({
         <p
           key={promptKey}
           className={cn(
-            "lab-prompt mt-2 text-center font-display text-xl tracking-[0.12em] text-pretty",
+            "lab-prompt mt-2 text-center font-display text-xl tracking-[0.04em] text-pretty",
             !reduced && "is-enter",
           )}
         >
           {prompt}
         </p>
-        <p className="text-center text-[11px] uppercase tracking-[0.18em] text-subtle mt-0.5">
+        <p className="text-center text-[11px] uppercase tracking-[0.04em] text-subtle mt-0.5">
           {viewLabel}
           {group ? " · group" : ""}
         </p>
@@ -134,7 +134,7 @@ export function AnatomyLab({
             />
           ))}
           {intro && !reduced ? <span className="lab-scan" /> : null}
-          {intro ? <p className="lab-ready font-display tracking-[0.28em]">READY</p> : null}
+          {intro ? <p className="lab-ready font-display tracking-[0.04em]">READY</p> : null}
           {xpBurst ? (
             <p key={xpBurst.id} className="lab-xp font-display">
               +{xpBurst.n} XP
@@ -153,11 +153,11 @@ export function AnatomyLab({
               aria-live="polite"
             >
               <div className="min-w-0 flex-1">
-                <p className="font-display tracking-[0.14em] text-base leading-tight truncate">
+                <p className="font-display tracking-[0.06em] text-base leading-tight truncate">
                   {caption.title}
                 </p>
                 {caption.subtitle ? (
-                  <p className="text-[11px] uppercase tracking-[0.16em] text-muted truncate">
+                  <p className="text-[11px] uppercase tracking-[0.1em] text-muted truncate">
                     {caption.subtitle}
                   </p>
                 ) : null}

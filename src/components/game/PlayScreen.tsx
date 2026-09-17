@@ -129,7 +129,7 @@ export function PlayScreen() {
       <div className="gym-shell flex flex-col px-5 pt-[max(1.25rem,env(safe-area-inset-top))] pb-10">
         <Header onBack={goHome} muted={muted} onMute={() => setMuted(!muted)} title="Speed Round" />
         <div className="flex-1 flex flex-col items-center justify-center text-center max-w-md mx-auto w-full">
-          <p className="font-display tracking-[0.28em] text-muted text-sm">SESSION COMPLETE</p>
+          <p className="font-display tracking-[0.04em] text-muted text-sm">SESSION COMPLETE</p>
           <p className="bm-pop mt-2 font-display text-7xl tabular-nums">{speed.score}</p>
           <p className="text-muted mt-1">Score</p>
           <dl className="mt-8 grid grid-cols-2 gap-3 w-full text-left">
@@ -166,7 +166,10 @@ export function PlayScreen() {
     );
   }
 
-  const currentCents = barTotal(spec.barCents, sidePlates.map((p) => p.cents));
+  const currentCents = barTotal(
+    spec.barCents,
+    sidePlates.map((p) => p.cents),
+  );
   const equal = currentCents === round.targetCents;
   const streak = speed?.running ? speed.streak : currentStreak;
   const guided = showsGuidance(difficulty);
@@ -204,14 +207,14 @@ export function PlayScreen() {
       ) : null}
 
       {speed?.running ? (
-        <div className="mt-2 flex justify-between font-display text-sm uppercase tracking-[0.16em] text-muted tabular-nums">
+        <div className="mt-2 flex justify-between font-display text-sm uppercase tracking-[0.1em] text-muted tabular-nums">
           <span className={cn(urgent && "bm-urgent")}>{Math.ceil(speed.remainingMs / 1000)}s</span>
           <span className="text-fg">{speed.score} pts</span>
         </div>
       ) : null}
 
       {mode === "trainer" ? (
-        <p className="mt-2 text-center text-[11px] uppercase tracking-[0.16em] text-muted tabular-nums">
+        <p className="mt-2 text-center text-[11px] uppercase tracking-[0.1em] text-muted tabular-nums">
           {trainerIndex + 1} / {trainerCurriculum(unit).length}
         </p>
       ) : null}
@@ -219,7 +222,7 @@ export function PlayScreen() {
       <div className="bm-play-gap mt-4 text-center">
         {kind === "load" ? (
           <>
-            <p className="text-[0.7rem] tracking-[0.32em] uppercase text-muted">
+            <p className="text-[0.7rem] tracking-[0.06em] uppercase text-muted">
               {round.trainerTitle ?? "Target Weight"}
             </p>
             <p className="bm-play-target font-display text-5xl sm:text-7xl tracking-tight tabular-nums text-fg leading-none mt-1">
@@ -229,7 +232,7 @@ export function PlayScreen() {
           </>
         ) : (
           <>
-            <p className="text-[0.7rem] tracking-[0.32em] uppercase text-muted">
+            <p className="text-[0.7rem] tracking-[0.06em] uppercase text-muted">
               {round.trainerTitle ?? "What's on the bar?"}
             </p>
             <p className="mt-1 text-sm text-muted">Call the total.</p>
@@ -239,7 +242,9 @@ export function PlayScreen() {
 
       <div className="bm-play-gap mt-4 relative">
         <Barbell
-          key={feedback?.kind === "wrong" || feedback?.kind === "timeout" ? `miss-${impact}` : "bar"}
+          key={
+            feedback?.kind === "wrong" || feedback?.kind === "timeout" ? `miss-${impact}` : "bar"
+          }
           unit={unit}
           plates={kind === "load" ? sidePlates : round.shownPlates}
           interactive={kind === "load" && !locked}
@@ -248,7 +253,9 @@ export function PlayScreen() {
           miss={feedback?.kind === "wrong" || feedback?.kind === "timeout"}
         />
         <div className="gym-floor mt-3" />
-        {feedback && (feedback.kind === "correct" || feedback.kind === "math") && feedback.xpGained ? (
+        {feedback &&
+        (feedback.kind === "correct" || feedback.kind === "math") &&
+        feedback.xpGained ? (
           <p key={`xp-${impact}`} className="bm-float" aria-hidden="true">
             +{feedback.xpGained} XP
           </p>
@@ -263,7 +270,7 @@ export function PlayScreen() {
           guided={guided}
         />
       ) : (
-        <p className="mt-4 text-center text-[11px] uppercase tracking-[0.18em] text-subtle">
+        <p className="mt-4 text-center text-[11px] uppercase tracking-[0.04em] text-subtle">
           {spec.barLabel} {spec.suffix} bar · plates each side
         </p>
       )}
@@ -319,7 +326,11 @@ export function PlayScreen() {
       </div>
 
       {inIntro && speed ? (
-        <Countdown introMs={speed.introMs} title="SPEED ROUND" subtitle="60 seconds. Stay accurate." />
+        <Countdown
+          introMs={speed.introMs}
+          title="SPEED ROUND"
+          subtitle="60 seconds. Stay accurate."
+        />
       ) : null}
 
       {feedback ? (
@@ -351,7 +362,10 @@ function LoadReadout({
   const on = delta === 0;
   const over = delta < 0;
   // Bar fills toward the target; overshoot pins full and turns red.
-  const frac = Math.min(1, (currentCents - spec.barCents) / Math.max(1, targetCents - spec.barCents));
+  const frac = Math.min(
+    1,
+    (currentCents - spec.barCents) / Math.max(1, targetCents - spec.barCents),
+  );
 
   return (
     <div className="bm-readout mt-4">
@@ -388,7 +402,7 @@ function LoadReadout({
           </div>
         </>
       ) : (
-        <p className="mt-1 text-[11px] uppercase tracking-[0.18em] text-subtle">
+        <p className="mt-1 text-[11px] uppercase tracking-[0.04em] text-subtle">
           Both sides load together
         </p>
       )}
@@ -446,18 +460,22 @@ function Header({
         <button
           type="button"
           onClick={onBack}
-          className="size-11 shrink-0 rounded-2xl border border-border bg-surface grid place-items-center text-muted"
+          className="size-11 shrink-0 bm-card rounded-2xl grid place-items-center text-muted"
           aria-label="Back"
         >
           <ChevronLeft className="size-5" />
         </button>
         <div className="flex-1 min-w-0 text-center">
-          <p className="font-display tracking-[0.18em] text-xs text-muted truncate">{title.toUpperCase()}</p>
+          <p className="font-display tracking-[0.04em] text-xs text-muted truncate">
+            {title.toUpperCase()}
+          </p>
           {subtitle || (streak && streak > 0) ? (
             <div className="bm-subline">
               {subtitle}
               {streak && streak > 0 ? (
-                <span className={cn("bm-streak", streak >= 5 && "is-hot", streak >= 10 && "is-fire")}>
+                <span
+                  className={cn("bm-streak", streak >= 5 && "is-hot", streak >= 10 && "is-fire")}
+                >
                   <Flame className="size-3.5" />
                   {streak}
                 </span>
@@ -470,7 +488,7 @@ function Header({
           <button
             type="button"
             onClick={onMute}
-            className="size-11 shrink-0 rounded-2xl border border-border bg-surface grid place-items-center text-muted"
+            className="size-11 shrink-0 bm-card rounded-2xl grid place-items-center text-muted"
             aria-label={muted ? "Unmute" : "Mute"}
           >
             {muted ? <VolumeX className="size-5" /> : <Volume2 className="size-5" />}
@@ -483,8 +501,8 @@ function Header({
 
 function Stat({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-2xl border border-border bg-surface p-4">
-      <p className="text-[11px] uppercase tracking-[0.16em] text-muted">{label}</p>
+    <div className="bm-card rounded-2xl p-4">
+      <p className="text-[11px] uppercase tracking-[0.1em] text-muted">{label}</p>
       <p className="mt-1 font-display text-2xl tabular-nums">{value}</p>
     </div>
   );
@@ -517,9 +535,9 @@ function FeedbackCard({
     return (
       <div className="bm-banner" role="status">
         <div className="bm-banner-card">
-          <span className="font-display tracking-[0.14em] text-fg">NAILED IT</span>
+          <span className="font-display tracking-[0.06em] text-fg">NAILED IT</span>
           {feedback.streak && feedback.streak >= 2 ? (
-            <span className="inline-flex items-center gap-1 text-xs uppercase tracking-[0.16em] text-accent">
+            <span className="inline-flex items-center gap-1 text-xs uppercase tracking-[0.1em] text-accent">
               <Flame className="size-3.5" />
               {feedback.streak}
             </span>
@@ -533,16 +551,16 @@ function FeedbackCard({
     <div className="fixed inset-0 z-40 grid place-items-center bg-bg/70 px-5" onClick={onContinue}>
       <div
         className={cn(
-          "bm-pop w-full max-w-sm rounded-3xl border p-6 text-center shadow-panel",
-          isWin ? "bg-surface border-border" : "bg-surface border-danger/40",
+          "bm-pop bm-glass w-full max-w-sm rounded-3xl p-6 text-center shadow-panel",
+          isWin ? "border-success/40" : "border-danger/50",
         )}
       >
         {isWin ? (
           <>
-            <p className="font-display text-4xl tracking-[0.14em] text-fg">NAILED IT</p>
+            <p className="font-display text-4xl tracking-[0.06em] text-fg">NAILED IT</p>
             <div className="mt-2 flex flex-wrap items-center justify-center gap-x-3 gap-y-1">
               {feedback.streak && feedback.streak >= 2 ? (
-                <p className="inline-flex items-center gap-1 text-sm uppercase tracking-[0.18em] text-accent">
+                <p className="inline-flex items-center gap-1 text-sm uppercase tracking-[0.04em] text-accent">
                   <Flame className="size-4" />
                   {feedback.streak} streak
                 </p>
@@ -555,7 +573,7 @@ function FeedbackCard({
               ) : null}
             </div>
             {feedback.newFastest ? (
-              <p className="mt-3 inline-flex items-center gap-1.5 font-display tracking-[0.18em] text-accent">
+              <p className="mt-3 inline-flex items-center gap-1.5 font-display tracking-[0.04em] text-accent">
                 <Zap className="size-4" />
                 NEW FASTEST
               </p>
@@ -591,7 +609,7 @@ function FeedbackCard({
             </p>
           </>
         )}
-        <p className="mt-5 text-[11px] uppercase tracking-[0.18em] text-subtle">Tap to continue</p>
+        <p className="mt-5 text-[11px] uppercase tracking-[0.04em] text-subtle">Tap to continue</p>
       </div>
     </div>
   );

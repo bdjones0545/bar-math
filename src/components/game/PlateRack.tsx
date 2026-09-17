@@ -16,7 +16,11 @@ export function PlateRack({
   const plates = platesForUnit(unit);
   const suffix = unit.toUpperCase();
   return (
-    <div className="flex flex-wrap justify-center gap-2 sm:gap-4" role="group" aria-label="Available plates">
+    <div
+      className="flex flex-wrap justify-center gap-2 sm:gap-4"
+      role="group"
+      aria-label="Available plates"
+    >
       {plates.map((p, i) => {
         const n = counts[p.cents] ?? 0;
         return (

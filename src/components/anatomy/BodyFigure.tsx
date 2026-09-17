@@ -53,11 +53,11 @@ export function BodyFigure({
           <stop offset="100%" stopColor="var(--color-bg)" stopOpacity="1" />
         </linearGradient>
         <linearGradient id={`${uid}-gloss`} x1="0.15" y1="0" x2="0.9" y2="1">
-          <stop offset="0%" stopColor="var(--color-accent)" stopOpacity="0.28" />
-          <stop offset="55%" stopColor="var(--color-accent)" stopOpacity="0" />
+          <stop offset="0%" stopColor="var(--color-fg)" stopOpacity="0.28" />
+          <stop offset="55%" stopColor="var(--color-fg)" stopOpacity="0" />
         </linearGradient>
         <radialGradient id={`${uid}-core`} cx="50%" cy="28%" r="55%">
-          <stop offset="0%" stopColor="var(--color-accent)" stopOpacity="0.08" />
+          <stop offset="0%" stopColor="var(--color-fg)" stopOpacity="0.08" />
           <stop offset="100%" stopColor="var(--color-bg)" stopOpacity="0" />
         </radialGradient>
         {/* Blur then re-threshold alpha: rounds polygon corners into organic edges. */}

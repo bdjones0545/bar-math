@@ -74,8 +74,8 @@ export function GameApp() {
     return (
       <div className="gym-shell grid min-h-dvh place-items-center">
         <div className="text-center">
-          <p className="font-display text-[0.7rem] tracking-[0.42em] text-muted">OLYMPIC LOADING</p>
-          <h1 className="mt-2 font-display text-5xl tracking-[0.14em]">BAR MATH</h1>
+          <p className="font-display text-[0.7rem] tracking-[0.3em] text-muted">OLYMPIC LOADING</p>
+          <h1 className="mt-2 font-display text-5xl tracking-[0.06em]">BAR MATH</h1>
         </div>
       </div>
     );
@@ -96,7 +96,7 @@ export function GameApp() {
         <div className="fixed top-[max(1rem,env(safe-area-inset-top))] inset-x-0 z-50 flex justify-center px-4 pointer-events-none">
           <div
             className={cn(
-              "bm-pop pointer-events-auto rounded-2xl border border-border bg-surface px-4 py-3 shadow-panel max-w-sm w-full",
+              "bm-pop pointer-events-auto bm-glass rounded-2xl px-4 py-3 shadow-panel max-w-sm w-full",
               toasts[0].kind === "level" && "bm-toast-level",
             )}
           >

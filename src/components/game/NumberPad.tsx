@@ -72,7 +72,7 @@ export function NumberPad({
             disabled={disabled}
             onClick={() => push(k)}
             className={cn(
-              "h-11 rounded-2xl bg-surface-2 border border-border text-lg font-semibold text-fg",
+              "h-11 rounded-2xl bm-card text-lg font-semibold text-fg",
               "active:scale-[0.98] transition-transform duration-150",
               "disabled:opacity-40",
             )}

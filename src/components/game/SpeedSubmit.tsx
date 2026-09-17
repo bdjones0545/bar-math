@@ -77,7 +77,7 @@ export function SpeedSubmit({
   return (
     <div className="mt-6 w-full text-center">
       {personalBest ? (
-        <p className="font-display tracking-[0.18em] text-accent">NEW PERSONAL BEST</p>
+        <p className="font-display tracking-[0.04em] text-accent">NEW PERSONAL BEST</p>
       ) : null}
 
       {down && !done ? (
@@ -88,7 +88,7 @@ export function SpeedSubmit({
 
       {done ? (
         <div className="mt-4">
-          <p className="font-display text-3xl tracking-[0.12em]">#{done.rank} TODAY</p>
+          <p className="font-display text-3xl tracking-[0.04em]">#{done.rank} TODAY</p>
           <p className="mt-1 text-sm text-muted">{done.name}</p>
           <Button className="w-full mt-5" onClick={openBoard}>
             View leaderboard
@@ -98,18 +98,20 @@ export function SpeedSubmit({
         <div className="mt-4">
           {!playerName ? (
             <label className="block text-left">
-              <span className="text-[11px] uppercase tracking-[0.18em] text-muted">Choose your player name</span>
+              <span className="text-[11px] uppercase tracking-[0.04em] text-muted">
+                Choose your player name
+              </span>
               <input
                 value={name}
                 maxLength={NAME_MAX}
                 onChange={(e) => setName(e.target.value)}
-                className="mt-2 w-full h-12 rounded-2xl border border-border bg-surface px-4 text-fg"
+                className="mt-2 w-full h-12 bm-card rounded-2xl px-4 text-fg"
                 placeholder="e.g. Bryan"
                 autoComplete="off"
               />
             </label>
           ) : (
-            <p className="text-xs uppercase tracking-[0.16em] text-subtle">Submit as {playerName}</p>
+            <p className="text-xs uppercase tracking-[0.1em] text-subtle">Submit as {playerName}</p>
           )}
           {error ? <p className="mt-2 text-sm text-muted text-pretty">{error}</p> : null}
           <Button className="w-full mt-4" onClick={() => void submit()} disabled={busy}>
@@ -117,7 +119,7 @@ export function SpeedSubmit({
           </Button>
           <button
             type="button"
-            className={cn("mt-3 text-xs uppercase tracking-[0.16em] text-subtle")}
+            className={cn("mt-3 text-xs uppercase tracking-[0.1em] text-subtle")}
             onClick={openBoard}
           >
             Skip · view board

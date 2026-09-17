@@ -31,17 +31,17 @@ export function StatsScreen() {
         <button
           type="button"
           onClick={goHome}
-          className="size-11 rounded-2xl border border-border bg-surface grid place-items-center text-muted"
+          className="size-11 bm-card rounded-2xl grid place-items-center text-muted"
           aria-label="Back"
         >
           <ChevronLeft className="size-5" />
         </button>
-        <h1 className="flex-1 text-center font-display tracking-[0.22em] text-sm">RECORD</h1>
+        <h1 className="flex-1 text-center font-display tracking-[0.06em] text-sm">RECORD</h1>
         <span className="size-11" />
       </header>
 
       <div className="mt-8 max-w-md mx-auto">
-        <p className="text-[0.7rem] tracking-[0.28em] uppercase text-muted">Level</p>
+        <p className="text-[0.7rem] tracking-[0.04em] uppercase text-muted">Level</p>
         <p className="font-display text-4xl mt-1">{level.current.name}</p>
         <div className="mt-3 h-1.5 rounded-full bg-surface-2 overflow-hidden">
           <div className="h-full bg-accent rounded-full" style={{ width: `${level.pct}%` }} />
@@ -69,13 +69,10 @@ export function StatsScreen() {
           />
           <Tile label="Bone speed" value={String(boneBestSpeed)} />
           <Tile label="Bone streak" value={String(boneBestStreak)} />
-          <Tile
-            label="Bone hits"
-            value={`${boneCorrect}/${boneCorrect + boneIncorrect || 0}`}
-          />
+          <Tile label="Bone hits" value={`${boneCorrect}/${boneCorrect + boneIncorrect || 0}`} />
         </dl>
 
-        <h2 className="mt-10 font-display tracking-[0.2em] text-sm text-muted">ACHIEVEMENTS</h2>
+        <h2 className="mt-10 font-display tracking-[0.04em] text-sm text-muted">ACHIEVEMENTS</h2>
         <ul className="mt-3 space-y-2">
           {ACHIEVEMENTS.map((a) => {
             const on = achievements.includes(a.id);
@@ -83,8 +80,8 @@ export function StatsScreen() {
               <li
                 key={a.id}
                 className={cn(
-                  "rounded-2xl border p-4",
-                  on ? "border-border bg-surface" : "border-border/60 bg-bg opacity-50",
+                  "rounded-2xl p-4",
+                  on ? "bm-card" : "border border-white/5 bg-bg opacity-50",
                 )}
               >
                 <p className="font-display tracking-wide text-lg">{a.name}</p>
@@ -100,8 +97,8 @@ export function StatsScreen() {
 
 function Tile({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-2xl border border-border bg-surface p-4">
-      <p className="text-[11px] uppercase tracking-[0.16em] text-muted">{label}</p>
+    <div className="bm-card rounded-2xl p-4">
+      <p className="text-[11px] uppercase tracking-[0.1em] text-muted">{label}</p>
       <p className="mt-1 font-display text-2xl tabular-nums">{value}</p>
     </div>
   );
