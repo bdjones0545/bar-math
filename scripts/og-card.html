@@ -116,12 +116,14 @@
         align-items: center;
         filter: drop-shadow(0 22px 30px rgb(0 0 0 / 0.6));
       }
+      /* First plate against the collar, later ones outward — like a real bar. */
       .side {
         display: flex;
         align-items: center;
+        flex-direction: row-reverse;
       }
       .side.r {
-        flex-direction: row-reverse;
+        flex-direction: row;
       }
       .shaft {
         height: 14px;

@@ -189,14 +189,16 @@
     padding-inline: 0.12rem;
   }
 
+  /* Plates are stored in load order: the first one on sits against the
+     collar, later ones stack outward toward the sleeve — like a real bar. */
   .bm-side-left {
-    flex-direction: row;
-    justify-content: flex-end;
+    flex-direction: row-reverse;
+    justify-content: flex-start;
   }
 
   .bm-side-right {
-    flex-direction: row-reverse;
-    justify-content: flex-end;
+    flex-direction: row;
+    justify-content: flex-start;
   }
 
   .bm-shaft {
