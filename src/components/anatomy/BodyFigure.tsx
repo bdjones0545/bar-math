@@ -60,12 +60,30 @@ export function BodyFigure({
           <stop offset="0%" stopColor="var(--color-accent)" stopOpacity="0.08" />
           <stop offset="100%" stopColor="var(--color-bg)" stopOpacity="0" />
         </radialGradient>
+        {/* Blur then re-threshold alpha: rounds polygon corners into organic edges. */}
+        <filter
+          id="lab-soft"
+          x="-5%"
+          y="-5%"
+          width="110%"
+          height="110%"
+          colorInterpolationFilters="sRGB"
+        >
+          <feGaussianBlur stdDeviation="1.6" result="blur" />
+          <feColorMatrix
+            in="blur"
+            type="matrix"
+            values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 18 -7"
+          />
+        </filter>
       </defs>
       <ellipse cx="110" cy="538" rx="58" ry="10" className="lab-floor" />
       <ellipse cx="110" cy="210" rx="70" ry="160" fill={`url(#${uid}-core)`} pointerEvents="none" />
-      {SILHOUETTE[view].map((d, i) => (
-        <path key={i} d={d} className="anatomy-body" fill={`url(#${uid}-body)`} />
-      ))}
+      <g className="lab-soft">
+        {SILHOUETTE[view].map((d, i) => (
+          <path key={i} d={d} className="anatomy-body" fill={`url(#${uid}-body)`} />
+        ))}
+      </g>
       {paths.map((p) => {
         const isTarget = p.muscleId === target;
         const isMiss = p.muscleId === missId;

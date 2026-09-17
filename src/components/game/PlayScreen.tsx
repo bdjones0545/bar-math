@@ -11,6 +11,7 @@ import { formatDelta } from "@/lib/game/progression";
 import { trainerCurriculum } from "@/lib/game/math";
 import { cn } from "@/lib/utils";
 import { SpeedSubmit } from "@/components/game/SpeedSubmit";
+import { Countdown } from "@/components/game/Countdown";
 import { useLeaderboardTicket } from "@/lib/leaderboard/useTicket";
 import type { Difficulty, Unit } from "@/lib/game/types";
 
@@ -317,7 +318,9 @@ export function PlayScreen() {
         )}
       </div>
 
-      {inIntro && speed ? <Countdown introMs={speed.introMs} /> : null}
+      {inIntro && speed ? (
+        <Countdown introMs={speed.introMs} title="SPEED ROUND" subtitle="60 seconds. Stay accurate." />
+      ) : null}
 
       {feedback ? (
         <FeedbackCard
@@ -418,22 +421,6 @@ function Stopwatch({
       <Timer className="size-3.5 text-accent" />
       {fmtSeconds(elapsed)}
     </span>
-  );
-}
-
-function Countdown({ introMs }: { introMs: number }) {
-  const n = Math.ceil(introMs / 1000);
-  const label = n <= 0 ? "GO" : String(n);
-  return (
-    <div className="bm-countdown" role="status" aria-live="assertive">
-      <div className="text-center">
-        <p className="font-display text-xs tracking-[0.42em] text-muted">SPEED ROUND</p>
-        <p key={label} className={cn("bm-countdown-num", label === "GO" && "is-go")}>
-          {label}
-        </p>
-        <p className="text-sm text-muted">60 seconds. Stay accurate.</p>
-      </div>
-    </div>
   );
 }
 

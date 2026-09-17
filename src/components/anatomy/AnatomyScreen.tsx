@@ -2,15 +2,16 @@ import { useEffect, useState } from "react";
 import { ChevronLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { BodyFigure } from "@/components/anatomy/BodyFigure";
-import { AnatomyLab } from "@/components/anatomy/AnatomyLab";
+import { AnatomyLab, type LabCaption } from "@/components/anatomy/AnatomyLab";
 import { SpeedSubmit } from "@/components/game/SpeedSubmit";
+import { Countdown } from "@/components/game/Countdown";
 import { useGameStore } from "@/lib/game/store";
 import { xpForCorrect } from "@/lib/game/progression";
 import { sfx } from "@/lib/game/audio";
+import { haptics } from "@/lib/game/haptics";
 import { cn } from "@/lib/utils";
 import { MUSCLE_BY_ID, displayName, type MuscleId } from "@/lib/anatomy/muscles";
-import { ANATOMY_VB, pathsForMuscle } from "@/lib/anatomy/paths";
-import { pathCentroid, useAnatomyLab } from "@/lib/anatomy/visual";
+import { SPEED_TOTAL_MS, useAnatomyLab, useSpeedClock } from "@/lib/anatomy/visual";
 import {
   makeAnatomyQuestion,
   makeSpeedPrompt,
@@ -29,7 +30,7 @@ export function AnatomyScreen() {
   const lab = useAnatomyLab("muscle");
 
   return (
-    <div className="gym-shell lab-shell flex flex-col px-4 pb-8 pt-[max(1rem,env(safe-area-inset-top))]">
+    <div className="gym-shell lab-shell flex flex-col h-dvh overflow-hidden px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-[max(0.75rem,env(safe-area-inset-top))]">
       <header className="flex items-center gap-2">
         <button
           type="button"
@@ -40,13 +41,13 @@ export function AnatomyScreen() {
           <ChevronLeft className="size-5" />
         </button>
         <div className="flex-1 min-w-0 text-center">
-          <p className="font-display tracking-[0.18em] text-xs text-muted">ATHLETE PERFORMANCE LAB</p>
-          <h1 className="font-display tracking-[0.14em] text-lg">POKE A MUSCLE</h1>
+          <p className="font-display tracking-[0.18em] text-[11px] text-muted">ATHLETE PERFORMANCE LAB</p>
+          <h1 className="font-display tracking-[0.14em] text-lg leading-tight">POKE A MUSCLE</h1>
         </div>
         <span className="size-11 shrink-0" />
       </header>
 
-      <div className="mt-4 max-w-md mx-auto w-full grid grid-cols-3 gap-1.5 rounded-3xl bg-surface p-1.5 border border-border">
+      <div className="mt-3 max-w-md mx-auto w-full grid grid-cols-3 gap-1 rounded-2xl bg-surface p-1 border border-border">
         {(
           [
             ["poke", "Poke"],
@@ -59,7 +60,7 @@ export function AnatomyScreen() {
             type="button"
             onClick={() => setTab(id)}
             className={cn(
-              "h-11 rounded-2xl font-display tracking-wide text-xs",
+              "h-9 rounded-xl font-display tracking-wide text-xs transition-colors",
               tab === id ? "bg-accent text-accent-fg" : "text-muted",
             )}
           >
@@ -89,31 +90,34 @@ function Play({
   const record = useGameStore((s) => s.recordAnatomyAnswer);
   const [q, setQ] = useState<AnatomyQuestion>(() => makeAnatomyQuestion(difficulty, kind));
   const [streak, setStreak] = useState(0);
+  const [round, setRound] = useState(1);
+  const [tally, setTally] = useState({ correct: 0, incorrect: 0 });
   const [misses, setMisses] = useState(0);
   const [missId, setMissId] = useState<MuscleId | null>(null);
   const [flash, setFlash] = useState<"correct" | "wrong" | null>(null);
   const [picked, setPicked] = useState<string | null>(null);
-  const started = useState(() => Date.now())[0];
+  const [started, setStarted] = useState(() => Date.now());
   const muscle = MUSCLE_BY_ID[q.muscleId];
   const reveal = flash === "correct" || misses >= 2;
   const named = kind === "name";
-  const path = pathsForMuscle(q.muscleId, muscle.view)[0];
-  const c = path ? pathCentroid(path.d) : { x: 110, y: 200 };
-  const labelAt = { x: (c.x / ANATOMY_VB.w) * 100, y: (c.y / ANATOMY_VB.h) * 100 };
 
   function next(from = q.muscleId) {
     setQ(makeAnatomyQuestion(difficulty, kind, from));
+    setRound((n) => n + 1);
     setMisses(0);
     setMissId(null);
     setFlash(null);
     setPicked(null);
+    setStarted(Date.now());
   }
 
   function succeed() {
     sfx.correct();
+    haptics.correct();
     const nextStreak = streak + 1;
     setStreak(nextStreak);
     setFlash("correct");
+    setTally((t) => ({ ...t, correct: t.correct + 1 }));
     const xp = xpForCorrect({
       difficulty,
       attempts: misses + 1,
@@ -122,15 +126,18 @@ function Play({
     });
     record({ hit: true, xp, streak: nextStreak });
     lab.celebrate(xp, nextStreak);
-    window.setTimeout(() => next(), 1100);
+    // Long enough to read the fact; the caption is where the eye already is.
+    window.setTimeout(() => next(), 1600);
   }
 
   function fail(id: MuscleId | null) {
     sfx.wrong();
+    lab.miss();
     setStreak(0);
     setMisses((n) => n + 1);
     setMissId(id);
     setFlash("wrong");
+    if (misses === 0) setTally((t) => ({ ...t, incorrect: t.incorrect + 1 }));
     record({ hit: false, xp: 0, streak: 0 });
   }
 
@@ -148,7 +155,37 @@ function Play({
     else fail(id);
   }
 
-  const showLabel = flash === "correct" || misses >= 2;
+  function showMe() {
+    setMisses(2);
+    setFlash("wrong");
+  }
+
+  const wrongName = missId ? MUSCLE_BY_ID[missId] : null;
+  let caption: LabCaption | null = null;
+  if (flash === "correct") {
+    caption = {
+      tone: "correct",
+      title: `NAILED IT — ${muscle.name.toUpperCase()}`,
+      subtitle: muscle.gymName,
+      body: q.fact,
+    };
+  } else if (misses >= 2) {
+    caption = {
+      tone: "reveal",
+      title: muscle.name.toUpperCase(),
+      subtitle: `${muscle.gymName} · ${q.cue}`,
+      body: named ? "Pick it from the list." : "Tap the highlighted region.",
+    };
+  } else if (flash === "wrong") {
+    caption = {
+      tone: "wrong",
+      title: "TRY AGAIN",
+      subtitle: wrongName
+        ? `That was the ${displayName(wrongName, difficulty).toLowerCase()}`
+        : "Nothing there",
+      action: { label: "Show me", onClick: showMe },
+    };
+  }
 
   return (
     <AnatomyLab
@@ -159,18 +196,14 @@ function Play({
       viewLabel={muscle.view === "front" ? "Anterior" : "Posterior"}
       group={muscle.group}
       flash={flash}
-      streak={streak}
+      hud={{ round, correct: tally.correct, incorrect: tally.incorrect, streak }}
       xpBurst={lab.xpBurst}
       streakBurst={lab.streakBurst}
+      shake={lab.shake}
       intro={lab.intro}
       reduced={lab.reduced}
       ripples={lab.ripples}
-      label={
-        showLabel
-          ? { title: muscle.name.toUpperCase(), subtitle: muscle.gymName }
-          : null
-      }
-      labelAt={showLabel ? labelAt : null}
+      caption={caption}
       onSkipIntro={lab.skipIntro}
       figure={
         <BodyFigure
@@ -184,25 +217,11 @@ function Play({
           onPoke={onPoke}
         />
       }
-      aside={
-        flash === "correct" ? (
-          <p className="mt-2 text-sm text-muted text-pretty text-center">{q.fact}</p>
-        ) : flash === "wrong" ? (
-          misses >= 2 ? (
-            <p className="mt-1 text-sm text-muted text-center">
-              {displayName(muscle, difficulty)}
-              {muscle.group ? " (group)" : ""} — {q.cue}
-            </p>
-          ) : (
-            <p className="mt-1 text-sm text-muted text-center">Tap the matching region.</p>
-          )
-        ) : null
-      }
       footer={
         kind === "name" && q.choices ? (
-          <div className="mt-3 grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-2 gap-1.5 max-w-md mx-auto">
             {q.choices.map((c) => {
-              const showCorrect = flash === "correct" && c.id === q.muscleId;
+              const showCorrect = (flash === "correct" || misses >= 2) && c.id === q.muscleId;
               const showWrong = flash === "wrong" && picked === c.id;
               return (
                 <button
@@ -210,10 +229,9 @@ function Play({
                   type="button"
                   onClick={() => onName(c.id)}
                   className={cn(
-                    "min-h-14 rounded-2xl border px-2 font-display text-sm tracking-wide",
-                    showCorrect && "border-success bg-success text-fg",
-                    showWrong && "border-danger bg-danger/20 text-fg",
-                    !showCorrect && !showWrong && "border-border bg-surface text-fg",
+                    "lab-choice",
+                    showCorrect && "is-correct",
+                    showWrong && "is-wrong",
                   )}
                 >
                   {c.label}
@@ -238,8 +256,7 @@ function SpeedPlay({
 }) {
   const record = useGameStore((s) => s.recordAnatomyAnswer);
   const setBest = useGameStore((s) => s.setAnatomySpeedBest);
-  const [running, setRunning] = useState(false);
-  const [remaining, setRemaining] = useState(60000);
+  const clock = useSpeedClock();
   const [q, setQ] = useState<AnatomyQuestion>(() => makeSpeedPrompt(difficulty));
   const [correct, setCorrect] = useState(0);
   const [incorrect, setIncorrect] = useState(0);
@@ -247,48 +264,35 @@ function SpeedPlay({
   const [streak, setStreak] = useState(0);
   const [bestStreak, setBestStreak] = useState(0);
   const [hit, setHit] = useState<"correct" | "wrong" | null>(null);
-  const lb = useLeaderboardTicket("muscle", running);
+  const [finalized, setFinalized] = useState(false);
+  const lb = useLeaderboardTicket("muscle", clock.running);
 
+  // Bank the score once when the clock runs out.
   useEffect(() => {
-    if (!running) return;
-    let raf = 0;
-    let last = performance.now();
-    const loop = (t: number) => {
-      const dt = Math.min(100, t - last);
-      last = t;
-      setRemaining((ms) => {
-        const next = ms - dt;
-        if (next <= 0) return 0;
-        return next;
-      });
-      raf = requestAnimationFrame(loop);
-    };
-    raf = requestAnimationFrame(loop);
-    return () => cancelAnimationFrame(raf);
-  }, [running]);
-
-  useEffect(() => {
-    if (running && remaining <= 0) {
-      setRunning(false);
-      setBest(score);
+    if (!clock.done || finalized) return;
+    setFinalized(true);
+    setBest(score);
+    if (score > 0 && score > best) {
+      sfx.record();
+      haptics.levelUp();
     }
-  }, [remaining, running, score, setBest]);
+  }, [clock.done, finalized, score, best, setBest]);
 
   function start() {
     lab.skipIntro();
-    setRunning(true);
-    setRemaining(60000);
     setCorrect(0);
     setIncorrect(0);
     setScore(0);
     setStreak(0);
     setBestStreak(0);
     setHit(null);
+    setFinalized(false);
     setQ(makeSpeedPrompt(difficulty));
+    clock.start();
   }
 
   function onPoke(id: MuscleId | null, pt?: { x: number; y: number }) {
-    if (!running) return;
+    if (!clock.running) return;
     if (pt) lab.impact(pt.x, pt.y);
     const muscle = MUSCLE_BY_ID[q.muscleId];
     if (id === q.muscleId) {
@@ -308,6 +312,7 @@ function SpeedPlay({
       return;
     }
     sfx.wrong();
+    lab.miss();
     setStreak(0);
     setIncorrect((n) => n + 1);
     setHit("wrong");
@@ -319,13 +324,13 @@ function SpeedPlay({
   const asked = correct + incorrect;
   const acc = asked === 0 ? 0 : Math.round((correct / asked) * 100);
 
-  if (!running && remaining === 0) {
+  if (clock.done) {
     return (
-      <div className="mt-8 max-w-md mx-auto w-full text-center">
+      <div className="mt-6 max-w-md mx-auto w-full text-center overflow-y-auto">
         <p className="font-display tracking-[0.28em] text-muted text-sm">SESSION COMPLETE</p>
-        <p className="mt-2 font-display text-6xl tabular-nums">{score}</p>
+        <p className="bm-pop mt-2 font-display text-7xl tabular-nums">{score}</p>
         <p className="text-muted mt-1">Muscle speed</p>
-        <dl className="mt-8 grid grid-cols-2 gap-3 text-left">
+        <dl className="mt-6 grid grid-cols-2 gap-3 text-left">
           <Stat label="Correct" value={String(correct)} />
           <Stat label="Incorrect" value={String(incorrect)} />
           <Stat label="Accuracy" value={`${acc}%`} />
@@ -348,7 +353,7 @@ function SpeedPlay({
     );
   }
 
-  if (!running) {
+  if (clock.phase === "idle") {
     return (
       <div className="mt-8 max-w-md mx-auto w-full text-center">
         <p className="font-display text-3xl tracking-[0.12em]">MUSCLE SPEED ROUND</p>
@@ -362,16 +367,19 @@ function SpeedPlay({
   }
 
   return (
-    <div className="mt-4 max-w-md mx-auto w-full flex flex-col">
-      <div className="flex items-center justify-between text-xs uppercase tracking-[0.16em] text-muted">
-        <span className="tabular-nums">{Math.ceil(remaining / 1000)}s</span>
-        <span className="tabular-nums">{score} pts</span>
-        <span className="inline-flex items-center gap-1">
+    <div className="mt-3 max-w-md mx-auto w-full flex flex-col flex-1 min-h-0">
+      <div className="flex items-center justify-between font-display text-sm uppercase tracking-[0.16em] text-muted tabular-nums">
+        <span className={cn(clock.urgent && "bm-urgent")}>{Math.ceil(clock.remaining / 1000)}s</span>
+        <span className="text-fg">{score} pts</span>
+        <span className={cn("inline-flex items-center gap-1", streak >= 5 && "text-fg")}>
           {streak} streak
         </span>
       </div>
-      <div className="mt-2 h-1 rounded-full bg-surface-2 overflow-hidden">
-        <div className="h-full bg-accent" style={{ width: `${(remaining / 60000) * 100}%` }} />
+      <div className="mt-1.5 bm-timer">
+        <div
+          className={cn("bm-timer-fill", clock.urgent && "is-urgent")}
+          style={{ width: `${(clock.remaining / SPEED_TOTAL_MS) * 100}%` }}
+        />
       </div>
       <AnatomyLab
         personality="muscle"
@@ -381,15 +389,15 @@ function SpeedPlay({
         viewLabel={muscle.view === "front" ? "Anterior" : "Posterior"}
         group={false}
         flash={hit}
-        streak={streak}
+        hud={null}
         xpBurst={lab.xpBurst}
         streakBurst={lab.streakBurst}
+        shake={lab.shake}
         intro={false}
         speed
         reduced={lab.reduced}
         ripples={lab.ripples}
-        label={null}
-        labelAt={null}
+        caption={null}
         onSkipIntro={lab.skipIntro}
         figure={
           <BodyFigure
@@ -404,6 +412,9 @@ function SpeedPlay({
           />
         }
       />
+      {clock.inIntro ? (
+        <Countdown introMs={clock.intro} title="MUSCLE SPEED" subtitle="See the name. Tap the muscle." />
+      ) : null}
     </div>
   );
 }

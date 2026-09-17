@@ -63,6 +63,8 @@ export function HomeScreen() {
   const bestSpeedScore = useGameStore((s) => s.bestSpeedScore);
   const fastestMs = useGameStore((s) => s.fastestMs);
   const trainerIndex = useGameStore((s) => s.trainerIndex);
+  const anatomyBestSpeed = useGameStore((s) => s.anatomyBestSpeed);
+  const boneBestSpeed = useGameStore((s) => s.boneBestSpeed);
   const muted = useGameStore((s) => s.muted);
   const startMode = useGameStore((s) => s.startMode);
   const setMuted = useGameStore((s) => s.setMuted);
@@ -172,6 +174,7 @@ export function HomeScreen() {
             <PersonStanding className="size-5 text-accent" />
             <p className="mt-3 font-display text-base leading-tight tracking-wide text-fg">Poke a Muscle</p>
             <p className="mt-1 text-xs text-muted text-pretty">See the name. Tap the right place.</p>
+            {anatomyBestSpeed > 0 ? <p className="bm-card-stat">Speed best {anatomyBestSpeed}</p> : null}
           </button>
           <button
             type="button"
@@ -181,6 +184,7 @@ export function HomeScreen() {
             <Bone className="size-5 text-accent" />
             <p className="mt-3 font-display text-base leading-tight tracking-wide text-fg">Whack a Bone</p>
             <p className="mt-1 text-xs text-muted text-pretty">See the name. Tap the right bone.</p>
+            {boneBestSpeed > 0 ? <p className="bm-card-stat">Speed best {boneBestSpeed}</p> : null}
           </button>
         </div>
       </div>
