@@ -40,6 +40,16 @@ export const MUSCLE_BAND: Record<MuscleId, MuscleBand> = {
   piriformis: "leg",
   teres_major: "shoulder",
   quadratus_lumborum: "core",
+  rectus_femoris: "leg",
+  vastus_lateralis: "leg",
+  vastus_medialis: "leg",
+  gracilis: "leg",
+  peroneals: "calf",
+  biceps_femoris: "leg",
+  semitendinosus: "leg",
+  adductor_magnus: "leg",
+  supraspinatus: "shoulder",
+  splenius_capitis: "shoulder",
 };
 
 export const BONE_BAND: Record<BoneId, BoneBand> = {
@@ -69,6 +79,16 @@ export const BONE_BAND: Record<BoneId, BoneBand> = {
   coccyx: "small",
   zygomatic: "head",
   maxilla: "head",
+  frontal_bone: "head",
+  temporal_bone: "head",
+  occipital_bone: "head",
+  nasal_bone: "head",
+  cervical_spine: "cage",
+  thoracic_spine: "cage",
+  lumbar_spine: "cage",
+  ilium: "girdle",
+  pubis: "girdle",
+  olecranon: "joint",
 };
 
 export function pathCentroid(d: string): { x: number; y: number } {

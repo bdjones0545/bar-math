@@ -113,8 +113,10 @@ export function makeBoneSpeedPrompt(difficulty: Difficulty, avoidId?: BoneId): B
   };
 }
 
+/** A whack on a part (ilium) satisfies its parent prompt (pelvis). */
 export function isCorrectWhack(target: BoneId, tapped: BoneId | null): boolean {
-  return tapped !== null && tapped === target;
+  if (tapped === null) return false;
+  return tapped === target || BONE_BY_ID[tapped].parent === target;
 }
 
 export { BONES, BONE_BY_ID };

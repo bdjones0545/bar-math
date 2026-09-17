@@ -270,6 +270,49 @@ export const BONE_PATHS: BonePath[] = [
   ...bilateral("tarsals", "front", TARSALS_L),
   ...bilateral("metatarsals", "front", METATARSALS_L),
   ...bilateral("phalanges_foot", "front", PHALANGES_FOOT_L),
+  // FRONT — Depth 2 (parts on top of their parents)
+  center("frontal_bone", "front", [
+    [88, 20],
+    [132, 20],
+    [138, 40],
+    [82, 40],
+  ]),
+  ...bilateral(
+    "temporal_bone",
+    "front",
+    [
+      [78, 40],
+      [76, 56],
+      [84, 62],
+      [88, 48],
+    ],
+    { narrow: true },
+  ),
+  center(
+    "nasal_bone",
+    "front",
+    [
+      [106, 36],
+      [114, 36],
+      [113, 50],
+      [107, 50],
+    ],
+    { narrow: true },
+  ),
+  ...bilateral("ilium", "front", [
+    [74, 208],
+    [66, 230],
+    [80, 236],
+    [96, 214],
+    [88, 204],
+  ]),
+  center("pubis", "front", [
+    [100, 238],
+    [120, 238],
+    [118, 250],
+    [110, 254],
+    [102, 250],
+  ]),
 
   // BACK
   ...bilateral("ribs", "back", RIBS_L_BACK),
@@ -335,8 +378,61 @@ export const BONE_PATHS: BonePath[] = [
     [74, 498],
     [68, 486],
   ]),
+  // BACK — Depth 2
+  center("occipital_bone", "back", [
+    [86, 44],
+    [134, 44],
+    [132, 66],
+    [110, 72],
+    [88, 66],
+  ]),
+  center(
+    "cervical_spine",
+    "back",
+    [
+      [104, 86],
+      [116, 86],
+      [116, 120],
+      [104, 120],
+    ],
+    { narrow: true },
+  ),
+  center(
+    "thoracic_spine",
+    "back",
+    [
+      [104, 122],
+      [116, 122],
+      [117, 186],
+      [103, 186],
+    ],
+    { narrow: true },
+  ),
+  center(
+    "lumbar_spine",
+    "back",
+    [
+      [103, 188],
+      [117, 188],
+      [118, 226],
+      [110, 236],
+      [102, 226],
+    ],
+    { narrow: true },
+  ),
+  ...bilateral(
+    "olecranon",
+    "back",
+    [
+      [36, 210],
+      [34, 222],
+      [46, 226],
+      [54, 220],
+      [50, 210],
+    ],
+    { narrow: true },
+  ),
 ];
-
 export const SILHOUETTE: Record<AnatomyView, string[]> = {
   front: [
     "M 110 18 C 128 18 136 34 132 52 C 128 68 118 74 110 74 C 102 74 92 68 88 52 C 84 34 92 18 110 18 Z",
