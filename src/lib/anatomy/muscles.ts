@@ -35,7 +35,18 @@ export type MuscleId =
   | "brachialis"
   | "piriformis"
   | "teres_major"
-  | "quadratus_lumborum";
+  | "quadratus_lumborum"
+  // Depth 2
+  | "rectus_femoris"
+  | "vastus_lateralis"
+  | "vastus_medialis"
+  | "gracilis"
+  | "peroneals"
+  | "biceps_femoris"
+  | "semitendinosus"
+  | "adductor_magnus"
+  | "supraspinatus"
+  | "splenius_capitis";
 
 export interface MuscleDef {
   id: MuscleId;
@@ -47,6 +58,12 @@ export interface MuscleDef {
   min: Difficulty;
   /** Lies under other muscle — drawn dashed and called out as deep. */
   deep?: boolean;
+  /**
+   * Part of a larger region that is also in the catalog (rectus femoris →
+   * quadriceps). A tap on this counts for the parent's prompt; the parent's
+   * uncovered area does not count for this.
+   */
+  parent?: MuscleId;
   cue: string;
   fact: string;
   neighbors: MuscleId[];
@@ -444,6 +461,135 @@ export const MUSCLES: MuscleDef[] = [
     cue: "Deep low back, between the last rib and the pelvis",
     fact: "Quadratus lumborum hikes the hip and side-bends the spine; it is the deep low-back muscle behind a lot of one-sided back pain.",
     neighbors: ["erector_spinae", "latissimus_dorsi", "gluteus_medius"],
+  },
+
+  // ---- Depth 2: heads and parts of the big groups, plus the ones coaches cue ----
+  {
+    id: "rectus_femoris",
+    name: "Rectus femoris",
+    gymName: "Middle quad",
+    speedName: "RECTUS FEM",
+    view: "front",
+    group: false,
+    min: "elite",
+    parent: "quadriceps",
+    cue: "Straight down the middle of the thigh",
+    fact: "Rectus femoris is the only quad head that crosses the hip, so it both flexes the hip and extends the knee.",
+    neighbors: ["vastus_lateralis", "vastus_medialis", "sartorius"],
+  },
+  {
+    id: "vastus_lateralis",
+    name: "Vastus lateralis",
+    gymName: "Outer quad",
+    speedName: "VAST LAT",
+    view: "front",
+    group: false,
+    min: "elite",
+    parent: "quadriceps",
+    cue: "Outer sweep of the thigh",
+    fact: "Vastus lateralis is the largest quad head — the outer sweep you see in a lunge.",
+    neighbors: ["rectus_femoris", "tensor_fasciae_latae", "vastus_medialis"],
+  },
+  {
+    id: "vastus_medialis",
+    name: "Vastus medialis",
+    gymName: "Teardrop",
+    speedName: "VMO",
+    view: "front",
+    group: false,
+    min: "elite",
+    parent: "quadriceps",
+    cue: "The teardrop just above the inner knee",
+    fact: "Vastus medialis (the VMO) locks out the last degrees of knee extension and keeps the kneecap tracking.",
+    neighbors: ["rectus_femoris", "vastus_lateralis", "gracilis"],
+  },
+  {
+    id: "gracilis",
+    name: "Gracilis",
+    gymName: "Inner-thigh strap",
+    speedName: "GRACILIS",
+    view: "front",
+    group: false,
+    min: "elite",
+    parent: "adductors",
+    cue: "The thin strap along the innermost thigh",
+    fact: "Gracilis is the most superficial adductor and runs the full length of the inner thigh to the knee.",
+    neighbors: ["adductors", "vastus_medialis", "sartorius"],
+  },
+  {
+    id: "peroneals",
+    name: "Peroneals",
+    gymName: "Outer shin",
+    speedName: "PERONEAL",
+    view: "front",
+    group: true,
+    min: "coach",
+    cue: "Outer side of the lower leg — muscle group",
+    fact: "The peroneals (fibularis longus and brevis) evert the foot and stabilize the ankle against rolling.",
+    neighbors: ["tibialis_anterior", "gastrocnemius", "soleus"],
+  },
+  {
+    id: "biceps_femoris",
+    name: "Biceps femoris",
+    gymName: "Outer hamstring",
+    speedName: "BICEPS FEM",
+    view: "back",
+    group: false,
+    min: "elite",
+    parent: "hamstrings",
+    cue: "Outer half of the back of the thigh",
+    fact: "Biceps femoris is the lateral hamstring and the one most often strained in sprinting.",
+    neighbors: ["semitendinosus", "gluteus_maximus", "gastrocnemius"],
+  },
+  {
+    id: "semitendinosus",
+    name: "Semitendinosus",
+    gymName: "Inner hamstring",
+    speedName: "SEMITEND",
+    view: "back",
+    group: false,
+    min: "elite",
+    parent: "hamstrings",
+    cue: "Inner half of the back of the thigh",
+    fact: "Semitendinosus (with semimembranosus beneath it) forms the medial hamstring, the cord you feel behind the inner knee.",
+    neighbors: ["biceps_femoris", "adductor_magnus", "gastrocnemius"],
+  },
+  {
+    id: "adductor_magnus",
+    name: "Adductor magnus",
+    gymName: "Inner thigh (rear)",
+    speedName: "ADD MAG",
+    view: "back",
+    group: false,
+    min: "coach",
+    cue: "Innermost back of the thigh",
+    fact: "Adductor magnus is the biggest adductor and acts like a fourth hamstring in a deep squat.",
+    neighbors: ["hamstrings", "gluteus_maximus", "semitendinosus"],
+  },
+  {
+    id: "supraspinatus",
+    name: "Supraspinatus",
+    gymName: "Top rotator cuff",
+    speedName: "SUPRA",
+    view: "back",
+    group: false,
+    min: "elite",
+    deep: true,
+    cue: "Above the spine of the shoulder blade, under the traps",
+    fact: "Supraspinatus starts every arm raise and is the rotator-cuff tendon most often impinged.",
+    neighbors: ["infraspinatus", "trapezius", "posterior_deltoid"],
+  },
+  {
+    id: "splenius_capitis",
+    name: "Splenius capitis",
+    gymName: "Back of neck",
+    speedName: "SPLENIUS",
+    view: "back",
+    group: false,
+    min: "elite",
+    cue: "Strap on the back of the neck, under the upper traps",
+    fact: "Splenius capitis extends and rotates the head; it is the neck muscle that fights forward-head posture.",
+    neighbors: ["trapezius", "sternocleidomastoid"],
   },
 ];
 

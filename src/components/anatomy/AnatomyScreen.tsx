@@ -13,6 +13,7 @@ import { cn } from "@/lib/utils";
 import { MUSCLE_BY_ID, displayName, type MuscleId } from "@/lib/anatomy/muscles";
 import { SPEED_TOTAL_MS, useAnatomyLab, useSpeedClock } from "@/lib/anatomy/visual";
 import {
+  isCorrectPoke,
   makeAnatomyQuestion,
   makeSpeedPrompt,
   type AnatomyKind,
@@ -190,14 +191,14 @@ function Play({
   function onPoke(id: MuscleId | null, pt?: { x: number; y: number }) {
     if (pt) lab.impact(pt.x, pt.y);
     if (kind !== "poke" || flash === "correct" || ended) return;
-    if (id === q.muscleId) succeed();
+    if (isCorrectPoke(q.muscleId, id)) succeed();
     else fail(id);
   }
 
   function onName(id: MuscleId) {
     if (kind !== "name" || flash === "correct" || ended) return;
     setPicked(id);
-    if (id === q.muscleId) succeed();
+    if (isCorrectPoke(q.muscleId, id)) succeed();
     else fail(id);
   }
 
@@ -344,7 +345,7 @@ function SpeedPlay({
     if (!clock.running) return;
     if (pt) lab.impact(pt.x, pt.y);
     const muscle = MUSCLE_BY_ID[q.muscleId];
-    if (id === q.muscleId) {
+    if (isCorrectPoke(q.muscleId, id)) {
       sfx.correct();
       const nextStreak = streak + 1;
       setStreak(nextStreak);

@@ -4,6 +4,8 @@ import { MUSCLE_BY_ID, MUSCLES, musclesForDifficulty, type MuscleId } from "./mu
 import { MUSCLE_PATHS, muscleIdFromPath, pathsForMuscle, pathsForView } from "./paths.ts";
 import { isCorrectPoke, makeAnatomyQuestion, makeSpeedPrompt } from "./game.ts";
 
+const RANKED = (d: string) => ({ rookie: 0, athlete: 1, coach: 2, elite: 3 })[d] ?? 0;
+
 describe("catalog", () => {
   it("covers the required front and back set", () => {
     const ids = MUSCLES.map((m) => m.id);
@@ -29,8 +31,8 @@ describe("catalog", () => {
     ] as MuscleId[]) {
       assert.ok(ids.includes(id), id);
     }
-    assert.equal(MUSCLES.filter((m) => m.view === "front").length, 16);
-    assert.equal(MUSCLES.filter((m) => m.view === "back").length, 16);
+    assert.equal(MUSCLES.filter((m) => m.view === "front").length, 21);
+    assert.equal(MUSCLES.filter((m) => m.view === "back").length, 21);
   });
 
   it("deepens the roster at coach and elite", () => {
@@ -40,8 +42,8 @@ describe("catalog", () => {
     const elite = musclesForDifficulty("elite").map((m) => m.id);
     assert.equal(rookie.length, 8);
     assert.equal(athlete.length, 14);
-    assert.equal(coach.length, 24);
-    assert.equal(elite.length, 32);
+    assert.equal(coach.length, 26);
+    assert.equal(elite.length, 42);
     for (const id of [
       "serratus_anterior",
       "adductors",
@@ -74,6 +76,17 @@ describe("catalog", () => {
     }
     assert.equal(Boolean(MUSCLE_BY_ID.pectineus.deep), false);
     assert.equal(Boolean(MUSCLE_BY_ID.deltoid.deep), false);
+  });
+
+  it("parts point at a parent in the catalog on the same view", () => {
+    const parts = MUSCLES.filter((m) => m.parent);
+    assert.equal(parts.length, 6);
+    for (const m of parts) {
+      const parent = MUSCLE_BY_ID[m.parent!];
+      assert.ok(parent, m.id);
+      assert.equal(parent.view, m.view, m.id);
+      assert.ok(RANKED(parent.min) <= RANKED(m.min), `${m.id} unlocks before ${parent.id}`);
+    }
   });
 
   it("neighbors reference real muscles", () => {
@@ -131,6 +144,15 @@ describe("paths", () => {
 });
 
 describe("validation", () => {
+  it("a tap on a part satisfies the parent prompt but not the reverse", () => {
+    assert.equal(isCorrectPoke("quadriceps", "rectus_femoris"), true);
+    assert.equal(isCorrectPoke("quadriceps", "vastus_medialis"), true);
+    assert.equal(isCorrectPoke("hamstrings", "biceps_femoris"), true);
+    assert.equal(isCorrectPoke("adductors", "gracilis"), true);
+    assert.equal(isCorrectPoke("rectus_femoris", "quadriceps"), false);
+    assert.equal(isCorrectPoke("rectus_femoris", "vastus_lateralis"), false);
+  });
+
   it("correct poke matches either side of the same muscle", () => {
     assert.equal(isCorrectPoke("deltoid", "deltoid"), true);
     assert.equal(isCorrectPoke("deltoid", "pectoralis_major"), false);
