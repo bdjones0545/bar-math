@@ -179,14 +179,14 @@ export function PlayScreen() {
   const showStopwatch = !speed && eliteRemainingMs === null;
 
   return (
-    <div className="gym-shell flex flex-col h-dvh overflow-hidden px-4 pt-[max(0.75rem,env(safe-area-inset-top))] pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+    <div className="gym-shell bm-play flex flex-col h-dvh overflow-hidden px-4 pt-[max(0.75rem,env(safe-area-inset-top))] pb-[max(0.75rem,env(safe-area-inset-bottom))]">
       <Header
         onBack={goHome}
         muted={muted}
         onMute={() => setMuted(!muted)}
         title={MODE_LABEL[mode] ?? "BAR MATH"}
         streak={streak}
-        right={
+        subtitle={
           showStopwatch ? (
             <Stopwatch startedAt={roundStartedAt} running={!feedback} bestMs={fastestMs} />
           ) : null
@@ -215,13 +215,13 @@ export function PlayScreen() {
         </p>
       ) : null}
 
-      <div className="mt-4 text-center">
+      <div className="bm-play-gap mt-4 text-center">
         {kind === "load" ? (
           <>
             <p className="text-[0.7rem] tracking-[0.32em] uppercase text-muted">
               {round.trainerTitle ?? "Target Weight"}
             </p>
-            <p className="font-display text-5xl sm:text-7xl tracking-tight tabular-nums text-fg leading-none mt-1">
+            <p className="bm-play-target font-display text-5xl sm:text-7xl tracking-tight tabular-nums text-fg leading-none mt-1">
               {formatWeight(round.targetCents)}
               <span className="ml-2 text-2xl text-muted">{spec.suffix}</span>
             </p>
@@ -236,7 +236,7 @@ export function PlayScreen() {
         )}
       </div>
 
-      <div className="mt-4 relative">
+      <div className="bm-play-gap mt-4 relative">
         <Barbell
           key={feedback?.kind === "wrong" || feedback?.kind === "timeout" ? `miss-${impact}` : "bar"}
           unit={unit}
@@ -268,7 +268,9 @@ export function PlayScreen() {
       )}
 
       {round.hint && !feedback ? (
-        <p className="mt-3 mx-auto max-w-md text-center text-sm text-muted text-pretty">{round.hint}</p>
+        <p className="bm-play-hint mt-3 mx-auto max-w-md text-center text-sm text-muted text-pretty">
+          {round.hint}
+        </p>
       ) : null}
 
       <div className="mt-auto pt-3">
@@ -286,7 +288,7 @@ export function PlayScreen() {
               <div className="mt-1.5 grid grid-cols-2 gap-1.5">
                 <Button
                   variant="ghost"
-                  size="md"
+                  size="sm"
                   onClick={undoPlate}
                   disabled={locked || sidePlates.length === 0}
                 >
@@ -295,7 +297,7 @@ export function PlayScreen() {
                 </Button>
                 <Button
                   variant="ghost"
-                  size="md"
+                  size="sm"
                   onClick={clearBar}
                   disabled={locked || sidePlates.length === 0}
                 >
@@ -409,7 +411,7 @@ function Stopwatch({
   const elapsed = (running ? now : Date.now()) - startedAt;
   return (
     <span
-      className="stat-chip bm-clock"
+      className="bm-clock"
       title={bestMs !== null ? `Fastest ${fmtSeconds(bestMs)}` : "Round time"}
       aria-label={`Round time ${fmtSeconds(elapsed)}`}
     >
@@ -441,14 +443,15 @@ function Header({
   onMute,
   title,
   streak,
-  right,
+  subtitle,
 }: {
   onBack: () => void;
   muted: boolean;
   onMute: () => void;
   title: string;
   streak?: number;
-  right?: React.ReactNode;
+  /** Small live element rendered beside the title (the round stopwatch). */
+  subtitle?: React.ReactNode;
 }) {
   return (
     <>
@@ -463,6 +466,17 @@ function Header({
         </button>
         <div className="flex-1 min-w-0 text-center">
           <p className="font-display tracking-[0.18em] text-xs text-muted truncate">{title.toUpperCase()}</p>
+          {subtitle || (streak && streak > 0) ? (
+            <div className="bm-subline">
+              {subtitle}
+              {streak && streak > 0 ? (
+                <span className={cn("bm-streak", streak >= 5 && "is-hot", streak >= 10 && "is-fire")}>
+                  <Flame className="size-3.5" />
+                  {streak}
+                </span>
+              ) : null}
+            </div>
+          ) : null}
         </div>
         <div className="flex items-center gap-1.5 shrink-0">
           <UnitToggle compact />
@@ -476,17 +490,6 @@ function Header({
           </button>
         </div>
       </header>
-      {(streak && streak > 0) || right ? (
-        <div className="mt-2 flex items-center justify-center gap-2">
-          {streak && streak > 0 ? (
-            <p className={cn("stat-chip", streak >= 5 && "text-fg border-accent/40")}>
-              <Flame className={cn("size-3.5 text-accent", streak >= 10 && "text-danger")} />
-              {streak} streak
-            </p>
-          ) : null}
-          {right}
-        </div>
-      ) : null}
     </>
   );
 }

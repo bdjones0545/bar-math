@@ -399,11 +399,72 @@
     animation: bm-ready 1.1s ease-in-out infinite;
   }
 
-  /* Round stopwatch chip */
-  .bm-clock {
-    font-variant-numeric: tabular-nums;
-    min-width: 3.4rem;
+  /* Line under the mode title: round stopwatch + streak. */
+  .bm-subline {
+    display: flex;
+    align-items: center;
     justify-content: center;
+    gap: 0.6rem;
+    margin-top: 0.15rem;
+    font-family: var(--font-display);
+    font-size: 0.8rem;
+    letter-spacing: 0.08em;
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+  }
+  .bm-clock {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    color: var(--color-fg);
+  }
+  .bm-streak {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.2rem;
+    color: var(--color-accent);
+    animation: bm-flash 220ms ease-out;
+  }
+  .bm-streak.is-hot {
+    color: var(--color-fg);
+  }
+  .bm-streak.is-fire {
+    color: var(--color-danger);
+  }
+
+  /* Short viewports (SE-class phones, landscape): tighten the play column so
+     the rack and Check Answer never fall below the fold. */
+  @media (max-height: 720px) {
+    .bm-play .bm-play-gap {
+      margin-top: 0.5rem;
+    }
+    .bm-play .bm-play-target {
+      font-size: 2.5rem;
+    }
+    .bm-play .bm-side {
+      min-height: 3.4rem;
+    }
+    .bm-play .gym-floor {
+      margin-top: 0.4rem;
+      height: 6px;
+    }
+    .bm-play .bm-readout {
+      margin-top: 0.5rem;
+    }
+    .bm-play .bm-readout-status {
+      margin-top: 0.2rem;
+      padding-block: 0.18rem;
+      font-size: 0.74rem;
+    }
+    .bm-play .bm-progress {
+      margin-top: 0.4rem;
+      height: 4px;
+    }
+    .bm-play .bm-play-hint {
+      margin-top: 0.4rem;
+      font-size: 0.78rem;
+      line-height: 1.25;
+    }
   }
 
   /* Timer bar: gradient + urgency. */
