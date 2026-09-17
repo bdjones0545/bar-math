@@ -1,21 +1,23 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import {
+  CATEGORY_UNITS,
+  UNITS,
   convert,
+  formatIn,
   formatResult,
+  formatTime,
   parseInput,
   quickRefs,
   roundTo,
   KG_IN_LB,
+  type ConvertCategory,
   type ConvertUnit,
 } from "./units.ts";
 import { CHALLENGE_BANK, expectedAnswer, makeChallengeQuestion } from "./challenge.ts";
 
 function close(actual: number, expected: number, eps = 1e-9) {
-  assert.ok(
-    Math.abs(actual - expected) <= eps,
-    `${actual} not within ${eps} of ${expected}`,
-  );
+  assert.ok(Math.abs(actual - expected) <= eps, `${actual} not within ${eps} of ${expected}`);
 }
 
 describe("mass", () => {
@@ -93,6 +95,91 @@ describe("volume", () => {
   });
 });
 
+describe("temperature (affine)", () => {
+  it("freezing, boiling, body temp", () => {
+    close(convert(0, "c", "f"), 32);
+    close(convert(100, "c", "f"), 212);
+    close(convert(98.6, "f", "c"), 37);
+    close(convert(-40, "c", "f"), -40);
+  });
+  it("accepts negative input only for temperature", () => {
+    assert.deepEqual(parseInput("-10", "c"), { ok: true, value: -10 });
+    assert.deepEqual(parseInput("-10", "kg"), { ok: false, reason: "negative" });
+  });
+});
+
+describe("speed and pace (inverse units)", () => {
+  it("mph ↔ km/h ↔ m/s", () => {
+    close(convert(10, "mph", "kmh"), 16.09344);
+    close(convert(36, "kmh", "ms"), 10);
+    close(convert(20, "mph", "ms"), 8.9408);
+  });
+  it("pace is the inverse of speed", () => {
+    close(convert(6, "mph", "minmi"), 10); // 6 mph = 10:00/mi
+    close(convert(10, "minmi", "mph"), 6);
+    close(convert(5, "minkm", "kmh"), 12); // 5:00/km = 12 km/h
+  });
+  it("min/mi ↔ min/km", () => {
+    // 8:00/mi is 4:58/km
+    assert.equal(formatIn(convert(8, "minmi", "minkm"), "minkm"), "4:58");
+    assert.equal(formatIn(convert(5, "minkm", "minmi"), "minmi"), "8:03");
+  });
+  it("zero pace does not divide by zero into NaN", () => {
+    assert.equal(formatIn(convert(0, "minmi", "mph"), "mph"), "");
+  });
+});
+
+describe("erg (Concept2 cubic)", () => {
+  it("2:00/500m is about 203 W and round-trips", () => {
+    const w = convert(2, "split500", "watts");
+    close(w, 202.55, 0.01);
+    assert.equal(formatIn(convert(w, "watts", "split500"), "split500"), "2:00");
+  });
+  it("1:45 split is the elite ~304 W", () => {
+    close(convert(1.75, "split500", "watts"), 302.3, 0.1);
+  });
+});
+
+describe("energy and force", () => {
+  it("kcal ↔ kJ and N ↔ kgf ↔ lbf", () => {
+    close(convert(500, "kcal", "kj"), 2092);
+    close(convert(100, "kgf", "n"), 980.665);
+    close(convert(1, "lbf", "n"), 4.4482216152605, 1e-9);
+  });
+});
+
+describe("athlete input formats", () => {
+  it("m:ss parses to decimal minutes", () => {
+    assert.deepEqual(parseInput("7:30", "minmi"), { ok: true, value: 7.5 });
+    assert.deepEqual(parseInput("1:45.5", "split500"), { ok: true, value: 1.7583333333333333 });
+    assert.equal(parseInput("7:75", "minmi").ok, false);
+  });
+  it("feet and inches parse only when the unit is feet", () => {
+    const fiveEleven = 5 + 11 / 12;
+    assert.deepEqual(parseInput(`5'11"`, "ft"), { ok: true, value: fiveEleven });
+    assert.deepEqual(parseInput("5'11", "ft"), { ok: true, value: fiveEleven });
+    assert.deepEqual(parseInput("5 ft 11 in", "ft"), { ok: true, value: fiveEleven });
+    assert.equal(parseInput("5'11", "m").ok, false);
+    assert.equal(formatResult(convert(fiveEleven, "ft", "cm")), "180.34");
+  });
+  it("formats time to the nearest second", () => {
+    assert.equal(formatTime(7.5), "7:30");
+    assert.equal(formatTime(4.9667), "4:58");
+    assert.equal(formatTime(0), "0:00");
+    assert.equal(formatTime(Infinity), "");
+  });
+});
+
+describe("catalog", () => {
+  it("every category lists units of its own type, with a valid default pair", () => {
+    for (const cat of Object.keys(CATEGORY_UNITS) as ConvertCategory[]) {
+      for (const u of CATEGORY_UNITS[cat]) assert.equal(UNITS[u].category, cat, u);
+    }
+    assert.throws(() => convert(1, "kg", "m"));
+    assert.throws(() => convert(1, "mph", "minmi") && convert(1, "mph", "c"));
+  });
+});
+
 describe("round-trip", () => {
   const pairs: [ConvertUnit, ConvertUnit, number][] = [
     ["kg", "lb", 100],
@@ -104,6 +191,12 @@ describe("round-trip", () => {
     ["ml", "l", 750],
     ["ml", "floz", 250],
     ["gal", "l", 2],
+    ["mph", "minmi", 7.5],
+    ["minkm", "ms", 4.5],
+    ["f", "c", 72],
+    ["split500", "watts", 2.1],
+    ["kcal", "kj", 350],
+    ["lbf", "kgf", 225],
   ];
   for (const [a, b, value] of pairs) {
     it(`${value} ${a} ↔ ${b}`, () => {
@@ -149,7 +242,21 @@ describe("challenge", () => {
       const ans = expectedAnswer(p);
       assert.notEqual(ans, "");
       assert.notEqual(ans, "NaN");
-      assert.ok(Number.isFinite(Number(ans)));
+      if (UNITS[p.to].format === "time")
+        assert.match(ans, /^\d+:[0-5]\d$/, `${p.value} ${p.from}→${p.to}`);
+      else assert.ok(Number.isFinite(Number(ans)), `${p.value} ${p.from}→${p.to}`);
+    }
+  });
+
+  it("time-format prompts offer four distinct m:ss choices with the answer", () => {
+    for (let i = 0; i < 40; i++) {
+      const q = makeChallengeQuestion("elite");
+      const labels = q.choices.map((c) => c.label);
+      assert.equal(new Set(labels).size, 4, labels.join(","));
+      assert.equal(q.choices.filter((c) => c.correct).length, 1);
+      if (q.toLabel === "MIN/KM" || q.toLabel === "MIN/MI" || q.toLabel === "/500M") {
+        for (const l of labels) assert.match(l, /^\d+:[0-5]\d$/, l);
+      }
     }
   });
 

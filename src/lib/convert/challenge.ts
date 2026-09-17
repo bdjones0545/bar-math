@@ -1,5 +1,13 @@
 import type { Difficulty } from "../game/types.ts";
-import { convert, formatResult, roundTo, UNITS, type ConvertUnit } from "./units.ts";
+import {
+  convert,
+  formatIn,
+  formatResult,
+  formatTime,
+  roundTo,
+  UNITS,
+  type ConvertUnit,
+} from "./units.ts";
 
 export interface ChallengePrompt {
   value: number;
@@ -55,6 +63,51 @@ const BANK: ChallengePrompt[] = [
   { value: 6, from: "ft", to: "cm", places: 1, min: "elite" },
   { value: 2.5, from: "kg", to: "lb", places: 2, min: "elite" },
   { value: 2.2, from: "lb", to: "kg", places: 2, min: "elite" },
+
+  // Temperature — the numbers a coach reads off a thermometer or a sauna.
+  { value: 0, from: "c", to: "f", places: 0, min: "rookie" },
+  { value: 100, from: "c", to: "f", places: 0, min: "rookie" },
+  { value: 32, from: "f", to: "c", places: 0, min: "rookie" },
+  { value: 98.6, from: "f", to: "c", places: 0, min: "athlete" },
+  { value: 90, from: "f", to: "c", places: 1, min: "athlete" },
+  { value: 37, from: "c", to: "f", places: 1, min: "coach" },
+  { value: 80, from: "c", to: "f", places: 0, min: "coach" },
+  { value: -10, from: "c", to: "f", places: 0, min: "elite" },
+  { value: 104, from: "f", to: "c", places: 1, min: "elite" },
+
+  // Speed — sprint and treadmill numbers.
+  { value: 10, from: "mph", to: "kmh", places: 1, min: "rookie" },
+  { value: 100, from: "kmh", to: "mph", places: 1, min: "rookie" },
+  { value: 10, from: "ms", to: "kmh", places: 0, min: "athlete" },
+  { value: 20, from: "mph", to: "ms", places: 2, min: "athlete" },
+  { value: 12, from: "kmh", to: "mph", places: 2, min: "coach" },
+  { value: 11, from: "ms", to: "mph", places: 2, min: "coach" },
+  { value: 37.6, from: "kmh", to: "ms", places: 2, min: "elite" },
+
+  // Pace — answers read as m:ss.
+  { value: 8, from: "minmi", to: "minkm", places: 2, min: "athlete" },
+  { value: 10, from: "minmi", to: "minkm", places: 2, min: "athlete" },
+  { value: 5, from: "minkm", to: "minmi", places: 2, min: "athlete" },
+  { value: 6, from: "mph", to: "minmi", places: 2, min: "coach" },
+  { value: 7.5, from: "minmi", to: "mph", places: 2, min: "coach" },
+  { value: 4, from: "minkm", to: "kmh", places: 1, min: "coach" },
+  { value: 12, from: "kmh", to: "minkm", places: 2, min: "elite" },
+  { value: 3.5, from: "minkm", to: "minmi", places: 2, min: "elite" },
+
+  // Erg — Concept2 split ↔ watts.
+  { value: 2, from: "split500", to: "watts", places: 0, min: "athlete" },
+  { value: 2.5, from: "split500", to: "watts", places: 0, min: "athlete" },
+  { value: 1.75, from: "split500", to: "watts", places: 0, min: "coach" },
+  { value: 200, from: "watts", to: "split500", places: 2, min: "coach" },
+  { value: 300, from: "watts", to: "split500", places: 2, min: "elite" },
+  { value: 1.5, from: "split500", to: "watts", places: 0, min: "elite" },
+
+  // Energy and force — labels and force plates.
+  { value: 500, from: "kcal", to: "kj", places: 0, min: "athlete" },
+  { value: 2000, from: "kj", to: "kcal", places: 0, min: "coach" },
+  { value: 100, from: "kgf", to: "n", places: 0, min: "coach" },
+  { value: 2000, from: "n", to: "kgf", places: 1, min: "elite" },
+  { value: 500, from: "lbf", to: "n", places: 0, min: "elite" },
 ];
 
 export interface ChallengeChoice {
@@ -110,6 +163,21 @@ function uniqueChoices(correct: number, places: number): number[] {
   return out.slice(0, 4);
 }
 
+/** m:ss answers: neighbours a few seconds to a minute away, unique after rounding to the second. */
+function uniqueTimeChoices(correct: number): number[] {
+  const seen = new Set<string>([formatTime(correct)]);
+  const out = [correct];
+  for (const step of [0.25, -0.25, 0.5, -0.5, 1, -1, 0.75, 0.1, -0.1]) {
+    if (out.length >= 4) break;
+    const next = Math.max(0, correct + step);
+    const key = formatTime(next);
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(next);
+  }
+  return out.slice(0, 4);
+}
+
 function shuffle<T>(items: T[]): T[] {
   const copy = [...items];
   for (let i = copy.length - 1; i > 0; i--) {
@@ -119,27 +187,26 @@ function shuffle<T>(items: T[]): T[] {
   return copy;
 }
 
-export function makeChallengeQuestion(
-  difficulty: Difficulty,
-  avoidId?: string,
-): ChallengeQuestion {
+export function makeChallengeQuestion(difficulty: Difficulty, avoidId?: string): ChallengeQuestion {
   const pool = poolFor(difficulty);
   const usable = avoidId ? pool.filter((p) => promptId(p) !== avoidId) : pool;
   const pick = usable[Math.floor(Math.random() * usable.length)] ?? pool[0]!;
   const raw = convert(pick.value, pick.from, pick.to);
-  const answer = roundTo(raw, pick.places);
-  const answerLabel = formatResult(answer);
-  const nums = uniqueChoices(answer, pick.places);
+  const timed = UNITS[pick.to].format === "time";
+  const answer = timed ? Math.round(raw * 60) / 60 : roundTo(raw, pick.places);
+  const label = (n: number) => (timed ? formatTime(n) : formatResult(n));
+  const answerLabel = label(answer);
+  const nums = timed ? uniqueTimeChoices(answer) : uniqueChoices(answer, pick.places);
   const choices = shuffle(nums).map((n) => ({
-    label: formatResult(n),
-    correct: formatResult(n) === answerLabel,
+    label: label(n),
+    correct: label(n) === answerLabel,
   }));
   if (!choices.some((c) => c.correct)) {
     choices[0] = { label: answerLabel, correct: true };
   }
   return {
     id: promptId(pick),
-    valueLabel: formatResult(pick.value),
+    valueLabel: formatIn(pick.value, pick.from),
     fromLabel: UNITS[pick.from].label,
     toLabel: UNITS[pick.to].label,
     choices,
@@ -152,7 +219,8 @@ function promptId(p: ChallengePrompt): string {
 }
 
 export function expectedAnswer(p: ChallengePrompt): string {
-  return formatResult(roundTo(convert(p.value, p.from, p.to), p.places));
+  const raw = convert(p.value, p.from, p.to);
+  return UNITS[p.to].format === "time" ? formatTime(raw) : formatResult(roundTo(raw, p.places));
 }
 
 export const CHALLENGE_BANK = BANK;

@@ -11,7 +11,8 @@ import {
   PARSE_MESSAGE,
   UNITS,
   convert,
-  formatResult,
+  formatIn,
+  inputHint,
   parseInput,
   quickRefs,
   type ConvertCategory,
@@ -78,11 +79,13 @@ function Converter() {
   const [openRef, setOpenRef] = useState<string | null>("Weight");
 
   const units = CATEGORY_UNITS[category];
-  const parsed = parseInput(raw);
+  const parsed = parseInput(raw, from);
   const result = useMemo(() => {
     if (!parsed.ok) return { text: PARSE_MESSAGE[parsed.reason], live: false };
     try {
-      return { text: formatResult(convert(parsed.value, from, to)), live: true };
+      const out = convert(parsed.value, from, to);
+      const text = formatIn(out, to);
+      return text ? { text, live: true } : { text: "—", live: false };
     } catch {
       return { text: "—", live: false };
     }
@@ -93,6 +96,7 @@ function Converter() {
     setCategory(next);
     setFrom(meta.from);
     setTo(meta.to);
+    setRaw(meta.seed);
   }
 
   function pickFrom(id: ConvertUnit) {
@@ -117,14 +121,19 @@ function Converter() {
 
   return (
     <div className="mt-6 max-w-md mx-auto w-full">
-      <div className="grid grid-cols-3 gap-1.5 rounded-3xl bm-seg p-1.5">
+      <div
+        className="flex flex-wrap gap-1.5 rounded-3xl bm-seg p-1.5"
+        role="group"
+        aria-label="Measurement type"
+      >
         {(Object.keys(CATEGORY_META) as ConvertCategory[]).map((id) => (
           <button
             key={id}
             type="button"
+            aria-pressed={category === id}
             onClick={() => selectCategory(id)}
             className={cn(
-              "h-11 rounded-2xl font-display tracking-wide text-xs",
+              "h-9 px-3 rounded-xl font-display tracking-wide text-xs grow basis-[calc(25%-0.375rem)]",
               category === id ? "bg-accent text-accent-fg" : "text-muted",
             )}
           >
@@ -137,7 +146,8 @@ function Converter() {
         <span className="text-[11px] uppercase tracking-[0.04em] text-muted">Convert</span>
         <input
           value={raw}
-          inputMode="decimal"
+          inputMode={inputHint(from) ? "text" : "decimal"}
+          placeholder={inputHint(from)}
           enterKeyHint="done"
           autoComplete="off"
           autoCorrect="off"
@@ -146,6 +156,13 @@ function Converter() {
           className="mt-2 w-full h-16 bm-card rounded-3xl px-4 font-display text-4xl tabular-nums tracking-wide text-fg outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
           aria-label="Value to convert"
         />
+        {inputHint(from) ? (
+          <span className="mt-1.5 block text-[11px] text-subtle">
+            {UNITS[from].format === "time"
+              ? "Type minutes:seconds, e.g. 7:30"
+              : `Type feet and inches, e.g. 5'11"`}
+          </span>
+        ) : null}
       </label>
 
       <p className="mt-4 text-[11px] uppercase tracking-[0.04em] text-muted">From</p>
