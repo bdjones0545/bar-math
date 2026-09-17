@@ -4,6 +4,8 @@ import { getSql, dbRelatedEnvKeys } from "../db.ts";
 import {
   hourWindowId,
   periodStartUtc,
+  RATE_RETAIN_HOURS,
+  ROUND_RETAIN_MS,
   sanitizeName,
   STARTS_PER_HOUR,
   SUBMITS_PER_HOUR,
@@ -22,7 +24,11 @@ function redactDbError(err: unknown): string {
 
 function requireDurableDb(): { ok: false; error: string } | null {
   const onVercel = process.env.VERCEL_ENV === "production" || process.env.VERCEL === "1";
-  const present = Boolean(process.env.DATABASE_URL?.trim() || process.env["DATABASE_URL"]?.trim() || process.env.POSTGRES_URL?.trim());
+  const present = Boolean(
+    process.env.DATABASE_URL?.trim() ||
+    process.env["DATABASE_URL"]?.trim() ||
+    process.env.POSTGRES_URL?.trim(),
+  );
   if (onVercel && !present) {
     const keys = dbRelatedEnvKeys();
     console.warn(
@@ -54,14 +60,39 @@ async function bumpRate(bucket: string, limit: number): Promise<boolean> {
   return (rows[0]?.count ?? 1) <= limit;
 }
 
-function callerIp(): string {
+/**
+ * Rate-limit key for the caller's network address. Vercel sets x-real-ip
+ * itself, so it wins over x-forwarded-for, which a client can prepend to.
+ * The address is hashed with the hour so the table never holds raw IPs and
+ * the key rotates with the window.
+ */
+function callerIpKey(): string {
+  let ip = "unknown";
   try {
-    const fwd = getRequestHeader("x-forwarded-for") || getRequestHeader("x-real-ip") || "";
-    const ip = String(fwd).split(",")[0]?.trim() || "unknown";
-    return ip.slice(0, 64);
+    const real = getRequestHeader("x-real-ip") || getRequestHeader("x-vercel-forwarded-for") || "";
+    const fwd = getRequestHeader("x-forwarded-for") || "";
+    ip = String(real).trim() || String(fwd).split(",")[0]?.trim() || "unknown";
   } catch {
-    return "unknown";
+    /* no request context (tests) */
   }
+  return createHash("sha256").update(`${hourWindowId()}|${ip}`).digest("hex").slice(0, 32);
+}
+
+/**
+ * Opportunistic housekeeping on the start path: drop rate windows older than
+ * the retention and rounds that were started but never submitted. Cheap
+ * (indexed), and it keeps both tables from growing without bound.
+ */
+async function purgeStale(): Promise<void> {
+  const sql = await getSql();
+  const keep = new Date(Date.now() - RATE_RETAIN_HOURS * 60 * 60_000);
+  const keepWindow = hourWindowId(keep);
+  await sql`delete from lb_rate where window_id < ${keepWindow}`;
+  const deadBefore = new Date(Date.now() - ROUND_RETAIN_MS).toISOString();
+  await sql`
+    delete from lb_rounds
+    where submitted_at is null and started_at < ${deadBefore}::timestamptz
+  `;
 }
 
 export async function startRoundRow(input: {
@@ -75,9 +106,11 @@ export async function startRoundRow(input: {
     if (!/^[A-Za-z0-9_-]{8,64}$/.test(input.clientId)) return { ok: false, error: "invalid" };
     const allowed = await bumpRate(`start:${input.clientId}`, STARTS_PER_HOUR);
     if (!allowed) return { ok: false, error: "rate" };
-    const ipAllowed = await bumpRate(`start-ip:${callerIp()}`, 60);
+    const ipAllowed = await bumpRate(`start-ip:${callerIpKey()}`, 60);
     if (!ipAllowed) return { ok: false, error: "rate" };
     const sql = await getSql();
+    // Once in a while, not every start: the purge is idempotent and cheap.
+    if (Math.random() < 0.1) await purgeStale().catch(() => undefined);
     const roundId = newId();
     const token = randomBytes(24).toString("base64url");
     await sql`
@@ -111,20 +144,25 @@ export async function submitRoundRow(input: {
     if (!named.ok) return named;
     const allowed = await bumpRate(`submit:${input.clientId}`, SUBMITS_PER_HOUR);
     if (!allowed) return { ok: false, error: "rate" };
-    const ipAllowed = await bumpRate(`submit-ip:${callerIp()}`, 30);
+    const ipAllowed = await bumpRate(`submit-ip:${callerIpKey()}`, 30);
     if (!ipAllowed) return { ok: false, error: "rate" };
 
     const sql = await getSql();
     const tokenHash = hashToken(input.token);
+    // Epoch milliseconds straight from Postgres. The previous `::text` form
+    // ("2026-09-17 05:00:00.123456+00") is not parseable by Date.parse, which
+    // silently rejected every submission as too fast.
     const rounds = await sql<{
       id: string;
       mode: string;
       difficulty: string;
       client_id: string;
-      started_at: string;
-      submitted_at: string | null;
+      started_ms: number | string;
+      submitted: boolean;
     }>`
-      select id, mode, difficulty, client_id, started_at::text, submitted_at::text
+      select id, mode, difficulty, client_id,
+        (extract(epoch from started_at) * 1000)::bigint as started_ms,
+        (submitted_at is not null) as submitted
       from lb_rounds
       where token_hash = ${tokenHash}
       limit 1
@@ -132,9 +170,9 @@ export async function submitRoundRow(input: {
     const round = rounds[0];
     if (!round) return { ok: false, error: "invalid" };
     if (round.client_id !== input.clientId) return { ok: false, error: "invalid" };
-    if (round.submitted_at) return { ok: false, error: "duplicate" };
+    if (round.submitted) return { ok: false, error: "duplicate" };
 
-    const started = Date.parse(String(round.started_at).replace(" ", "T"));
+    const started = Number(round.started_ms);
     if (!Number.isFinite(started) || !validateElapsed(Date.now() - started)) {
       return { ok: false, error: "invalid" };
     }
@@ -203,7 +241,12 @@ export async function listBoard(input: {
   clientId: string;
   limit: number;
 }): Promise<
-  | { ok: true; rows: BoardRow[]; you: { rank: number; name: string; score: number } | null; generatedAt: string }
+  | {
+      ok: true;
+      rows: BoardRow[];
+      you: { rank: number; name: string; score: number } | null;
+      generatedAt: string;
+    }
   | { ok: false; error: string }
 > {
   const blocked = requireDurableDb();

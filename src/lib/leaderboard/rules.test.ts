@@ -31,22 +31,46 @@ describe("leaderboard names", () => {
 describe("leaderboard scoring", () => {
   it("checks accuracy consistency", () => {
     assert.equal(accuracyOf(18, 1), 95);
-    assert.deepEqual(validateResult({ mode: "muscle", score: 200, correct: 18, incorrect: 1, accuracy: 95 }), {
-      ok: true,
-    });
+    assert.deepEqual(
+      validateResult({ mode: "muscle", score: 200, correct: 18, incorrect: 1, accuracy: 95 }),
+      {
+        ok: true,
+      },
+    );
     assert.equal(
       validateResult({ mode: "muscle", score: 200, correct: 18, incorrect: 1, accuracy: 100 }).ok,
       false,
     );
   });
   it("rejects impossible scores", () => {
-    assert.equal(validateResult({ mode: "bar", score: 999999, correct: 3, incorrect: 0, accuracy: 100 }).ok, false);
-    assert.equal(validateResult({ mode: "muscle", score: 10, correct: 0, incorrect: 4, accuracy: 0 }).ok, false);
-    assert.equal(validateResult({ mode: "bone", score: 1.5 as unknown as number, correct: 1, incorrect: 0, accuracy: 100 }).ok, false);
+    assert.equal(
+      validateResult({ mode: "bar", score: 999999, correct: 3, incorrect: 0, accuracy: 100 }).ok,
+      false,
+    );
+    assert.equal(
+      validateResult({ mode: "muscle", score: 10, correct: 0, incorrect: 4, accuracy: 0 }).ok,
+      false,
+    );
+    assert.equal(
+      validateResult({
+        mode: "bone",
+        score: 1.5 as unknown as number,
+        correct: 1,
+        incorrect: 0,
+        accuracy: 100,
+      }).ok,
+      false,
+    );
   });
   it("accepts plausible bar and muscle scores", () => {
-    assert.equal(validateResult({ mode: "bar", score: 150, correct: 1, incorrect: 2, accuracy: 33 }).ok, true);
-    assert.equal(validateResult({ mode: "muscle", score: 12, correct: 1, incorrect: 0, accuracy: 100 }).ok, true);
+    assert.equal(
+      validateResult({ mode: "bar", score: 150, correct: 1, incorrect: 2, accuracy: 33 }).ok,
+      true,
+    );
+    assert.equal(
+      validateResult({ mode: "muscle", score: 12, correct: 1, incorrect: 0, accuracy: 100 }).ok,
+      true,
+    );
   });
   it("enforces round duration window", () => {
     assert.equal(validateElapsed(10_000), false);

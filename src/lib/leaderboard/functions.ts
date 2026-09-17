@@ -4,7 +4,6 @@ import { LB_LIMIT, isLbDifficulty, isLbMode, isLbPeriod } from "./rules";
 
 const modeZ = z.enum(["bar", "muscle", "bone"]);
 const diffZ = z.enum(["rookie", "athlete", "coach", "elite"]);
-const periodZ = z.enum(["today", "week", "all"]);
 
 export const startLbRound = createServerFn({ method: "POST" })
   .validator(
