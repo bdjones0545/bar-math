@@ -59,8 +59,8 @@ export function SkeletonFigure({
           <stop offset="100%" stopColor="var(--color-bg)" />
         </linearGradient>
         <linearGradient id={`${uid}-bone`} x1="0.2" y1="0" x2="0.9" y2="1">
-          <stop offset="0%" stopColor="var(--color-accent)" stopOpacity="0.55" />
-          <stop offset="45%" stopColor="var(--color-accent)" stopOpacity="0.12" />
+          <stop offset="0%" stopColor="var(--color-fg)" stopOpacity="0.55" />
+          <stop offset="45%" stopColor="var(--color-fg)" stopOpacity="0.12" />
           <stop offset="100%" stopColor="var(--color-surface)" stopOpacity="0.2" />
         </linearGradient>
         {/* Blur then re-threshold alpha: rounds polygon corners into organic edges. */}

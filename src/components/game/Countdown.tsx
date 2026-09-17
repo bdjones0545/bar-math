@@ -15,7 +15,7 @@ export function Countdown({
   return (
     <div className="bm-countdown" role="status" aria-live="assertive">
       <div className="text-center">
-        <p className="font-display text-xs tracking-[0.42em] text-muted">{title}</p>
+        <p className="font-display text-xs tracking-[0.3em] text-muted">{title}</p>
         <p key={label} className={cn("bm-countdown-num", label === "GO" && "is-go")}>
           {label}
         </p>

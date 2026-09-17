@@ -32,19 +32,19 @@ export function ConvertScreen() {
         <button
           type="button"
           onClick={goHome}
-          className="size-11 shrink-0 rounded-2xl border border-border bg-surface grid place-items-center text-muted"
+          className="size-11 shrink-0 bm-card rounded-2xl grid place-items-center text-muted"
           aria-label="Back"
         >
           <ChevronLeft className="size-5" />
         </button>
         <div className="flex-1 min-w-0 text-center">
-          <p className="font-display tracking-[0.18em] text-xs text-muted">TOOLS & TRAINING</p>
-          <h1 className="font-display tracking-[0.14em] text-lg">CONVERSION MEASUREMENTS</h1>
+          <p className="font-display tracking-[0.04em] text-xs text-muted">TOOLS & TRAINING</p>
+          <h1 className="font-display tracking-[0.06em] text-lg">CONVERSION MEASUREMENTS</h1>
         </div>
         <span className="size-11 shrink-0" />
       </header>
 
-      <div className="mt-5 max-w-md mx-auto w-full grid grid-cols-2 gap-1.5 rounded-3xl bg-surface p-1.5 border border-border">
+      <div className="mt-5 max-w-md mx-auto w-full grid grid-cols-2 gap-1.5 rounded-3xl bm-seg p-1.5">
         {(
           [
             ["convert", "Converter"],
@@ -117,7 +117,7 @@ function Converter() {
 
   return (
     <div className="mt-6 max-w-md mx-auto w-full">
-      <div className="grid grid-cols-3 gap-1.5 rounded-3xl bg-surface p-1.5 border border-border">
+      <div className="grid grid-cols-3 gap-1.5 rounded-3xl bm-seg p-1.5">
         {(Object.keys(CATEGORY_META) as ConvertCategory[]).map((id) => (
           <button
             key={id}
@@ -134,7 +134,7 @@ function Converter() {
       </div>
 
       <label className="mt-6 block">
-        <span className="text-[11px] uppercase tracking-[0.18em] text-muted">Convert</span>
+        <span className="text-[11px] uppercase tracking-[0.04em] text-muted">Convert</span>
         <input
           value={raw}
           inputMode="decimal"
@@ -143,30 +143,30 @@ function Converter() {
           autoCorrect="off"
           spellCheck={false}
           onChange={(e) => setRaw(e.target.value)}
-          className="mt-2 w-full h-16 rounded-3xl border border-border bg-surface px-4 font-display text-4xl tabular-nums tracking-wide text-fg outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+          className="mt-2 w-full h-16 bm-card rounded-3xl px-4 font-display text-4xl tabular-nums tracking-wide text-fg outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
           aria-label="Value to convert"
         />
       </label>
 
-      <p className="mt-4 text-[11px] uppercase tracking-[0.18em] text-muted">From</p>
+      <p className="mt-4 text-[11px] uppercase tracking-[0.04em] text-muted">From</p>
       <UnitGrid units={units} selected={from} onPick={pickFrom} />
 
       <div className="mt-3 flex justify-center">
         <button
           type="button"
           onClick={swap}
-          className="size-12 rounded-2xl border border-border bg-surface-2 grid place-items-center text-fg"
+          className="size-12 bm-card rounded-2xl-2 grid place-items-center text-fg"
           aria-label={`Swap ${UNITS[from].label} and ${UNITS[to].label}`}
         >
           <ArrowLeftRight className="size-5" />
         </button>
       </div>
 
-      <p className="text-[11px] uppercase tracking-[0.18em] text-muted">To</p>
+      <p className="text-[11px] uppercase tracking-[0.04em] text-muted">To</p>
       <UnitGrid units={units} selected={to} onPick={pickTo} />
 
-      <div className="mt-6 rounded-3xl border border-border bg-surface px-5 py-6 text-center">
-        <p className="text-[11px] uppercase tracking-[0.18em] text-muted">Result</p>
+      <div className="mt-6 bm-card rounded-3xl px-5 py-6 text-center">
+        <p className="text-[11px] uppercase tracking-[0.04em] text-muted">Result</p>
         <p
           className={cn(
             "mt-2 font-display tracking-wide tabular-nums",
@@ -176,16 +176,18 @@ function Converter() {
           {result.text}
         </p>
         {result.live ? (
-          <p className="mt-2 font-display tracking-[0.16em] text-muted">{UNITS[to].label}</p>
+          <p className="mt-2 font-display tracking-[0.1em] text-muted">{UNITS[to].label}</p>
         ) : null}
       </div>
 
-      <p className="mt-8 text-[11px] uppercase tracking-[0.18em] text-muted">Athlete quick conversions</p>
+      <p className="mt-8 text-[11px] uppercase tracking-[0.04em] text-muted">
+        Athlete quick conversions
+      </p>
       <div className="mt-3 space-y-2">
         {refs.map((group) => {
           const open = openRef === group.title;
           return (
-            <div key={group.title} className="rounded-2xl border border-border bg-surface overflow-hidden">
+            <div key={group.title} className="bm-card rounded-2xl overflow-hidden">
               <button
                 type="button"
                 onClick={() => setOpenRef(open ? null : group.title)}
@@ -193,12 +195,17 @@ function Converter() {
                 aria-expanded={open}
               >
                 {group.title}
-                <ChevronDown className={cn("size-4 text-muted transition-transform", open && "rotate-180")} />
+                <ChevronDown
+                  className={cn("size-4 text-muted transition-transform", open && "rotate-180")}
+                />
               </button>
               {open ? (
                 <ul className="px-4 pb-4 space-y-2">
                   {group.rows.map((row) => (
-                    <li key={row.left} className="flex items-center justify-between text-sm tabular-nums">
+                    <li
+                      key={row.left}
+                      className="flex items-center justify-between text-sm tabular-nums"
+                    >
                       <span className="text-muted">{row.left}</span>
                       <span className="font-display tracking-wide">{row.right}</span>
                     </li>
@@ -233,7 +240,7 @@ function UnitGrid({
             onClick={() => onPick(id)}
             className={cn(
               "min-h-11 rounded-2xl border font-display tracking-wide text-xs",
-              on ? "border-accent bg-accent text-accent-fg" : "border-border bg-surface text-muted",
+              on ? "border-accent bg-accent text-accent-fg" : "bm-card text-muted",
             )}
             aria-pressed={on}
           >
@@ -245,8 +252,14 @@ function UnitGrid({
   );
 }
 
-function Challenge({ difficulty }: { difficulty: ReturnType<typeof useGameStore.getState>["difficulty"] }) {
-  const [question, setQuestion] = useState<ChallengeQuestion>(() => makeChallengeQuestion(difficulty));
+function Challenge({
+  difficulty,
+}: {
+  difficulty: ReturnType<typeof useGameStore.getState>["difficulty"];
+}) {
+  const [question, setQuestion] = useState<ChallengeQuestion>(() =>
+    makeChallengeQuestion(difficulty),
+  );
   const [streak, setStreak] = useState(0);
   const [best, setBest] = useState(0);
   const [picked, setPicked] = useState<string | null>(null);
@@ -277,7 +290,7 @@ function Challenge({ difficulty }: { difficulty: ReturnType<typeof useGameStore.
 
   return (
     <div className="mt-6 max-w-md mx-auto w-full">
-      <div className="flex items-center justify-between text-xs uppercase tracking-[0.16em] text-muted">
+      <div className="flex items-center justify-between text-xs uppercase tracking-[0.1em] text-muted">
         <span>{DIFFICULTY_META[difficulty].name}</span>
         <span className="inline-flex items-center gap-1">
           <Flame className="size-3.5 text-accent" />
@@ -285,10 +298,12 @@ function Challenge({ difficulty }: { difficulty: ReturnType<typeof useGameStore.
         </span>
       </div>
 
-      <div className="mt-6 rounded-3xl border border-border bg-surface px-5 py-8 text-center">
-        <p className="text-[11px] uppercase tracking-[0.18em] text-muted">Convert</p>
-        <p className="mt-3 font-display text-5xl tabular-nums tracking-wide">{question.valueLabel}</p>
-        <p className="mt-2 font-display tracking-[0.18em] text-muted">{question.fromLabel}</p>
+      <div className="mt-6 bm-card rounded-3xl px-5 py-8 text-center">
+        <p className="text-[11px] uppercase tracking-[0.04em] text-muted">Convert</p>
+        <p className="mt-3 font-display text-5xl tabular-nums tracking-wide">
+          {question.valueLabel}
+        </p>
+        <p className="mt-2 font-display tracking-[0.04em] text-muted">{question.fromLabel}</p>
         <p className="mt-6 text-sm text-muted">= ? {question.toLabel}</p>
       </div>
 
@@ -306,7 +321,7 @@ function Challenge({ difficulty }: { difficulty: ReturnType<typeof useGameStore.
                 "min-h-16 rounded-3xl border font-display text-2xl tabular-nums tracking-wide",
                 showCorrect && "border-success bg-success text-fg",
                 showWrong && "border-danger bg-danger/20 text-fg",
-                !showCorrect && !showWrong && "border-border bg-surface text-fg",
+                !showCorrect && !showWrong && "bm-card text-fg",
               )}
             >
               {c.label}
@@ -326,11 +341,13 @@ function Challenge({ difficulty }: { difficulty: ReturnType<typeof useGameStore.
       ) : null}
 
       {flash === "correct" ? (
-        <p className="mt-6 text-center font-display text-3xl tracking-[0.14em]">NAILED IT</p>
+        <p className="mt-6 text-center font-display text-3xl tracking-[0.06em]">NAILED IT</p>
       ) : null}
 
       {best > 1 ? (
-        <p className="mt-6 text-center text-xs uppercase tracking-[0.16em] text-subtle">Best this session {best}</p>
+        <p className="mt-6 text-center text-xs uppercase tracking-[0.1em] text-subtle">
+          Best this session {best}
+        </p>
       ) : null}
     </div>
   );

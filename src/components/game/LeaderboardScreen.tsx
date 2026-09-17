@@ -72,14 +72,14 @@ export function LeaderboardScreen() {
         <button
           type="button"
           onClick={goHome}
-          className="size-11 shrink-0 rounded-2xl border border-border bg-surface grid place-items-center text-muted"
+          className="size-11 shrink-0 bm-card rounded-2xl grid place-items-center text-muted"
           aria-label="Back"
         >
           <ChevronLeft className="size-5" />
         </button>
         <div className="flex-1 min-w-0 text-center">
-          <p className="font-display tracking-[0.18em] text-xs text-muted">COMPETE</p>
-          <h1 className="font-display tracking-[0.14em] text-lg">LEADERBOARDS</h1>
+          <p className="font-display tracking-[0.04em] text-xs text-muted">COMPETE</p>
+          <h1 className="font-display tracking-[0.06em] text-lg">LEADERBOARDS</h1>
         </div>
         <span className="size-11 shrink-0" />
       </header>
@@ -91,20 +91,26 @@ export function LeaderboardScreen() {
           onChange={setMode}
         />
         <div className="mt-2">
-          <Seg value={period} options={LB_PERIODS.map((id) => [id, PERIOD_LABEL[id]] as const)} onChange={setPeriod} />
+          <Seg
+            value={period}
+            options={LB_PERIODS.map((id) => [id, PERIOD_LABEL[id]] as const)}
+            onChange={setPeriod}
+          />
         </div>
         <div className="mt-2">
           <Seg
             value={diff}
-            options={LB_DIFFICULTIES.map((id) => [id, DIFFICULTY_META[id].name.toUpperCase()] as const)}
+            options={LB_DIFFICULTIES.map(
+              (id) => [id, DIFFICULTY_META[id].name.toUpperCase()] as const,
+            )}
             onChange={setDiff}
           />
         </div>
 
-        <p className="mt-4 text-center text-[11px] uppercase tracking-[0.18em] text-subtle">
+        <p className="mt-4 text-center text-[11px] uppercase tracking-[0.04em] text-subtle">
           {MODE_LABEL[mode]} · {PERIOD_LABEL[period]} · {DIFFICULTY_META[diff].name}
         </p>
-        <p className="mt-1 text-center text-[11px] uppercase tracking-[0.16em] text-subtle">
+        <p className="mt-1 text-center text-[11px] uppercase tracking-[0.1em] text-subtle">
           Windows run on UTC · ranked by correct, then accuracy
         </p>
 
@@ -129,14 +135,16 @@ export function LeaderboardScreen() {
               <li
                 key={`${row.rank}-${row.name}-${row.score}`}
                 className={cn(
-                  "rounded-2xl border px-3 py-2.5 flex items-baseline gap-3",
-                  row.mine ? "border-accent bg-accent/10" : "border-border bg-surface",
+                  "rounded-2xl px-3 py-2.5 flex items-baseline gap-3 border",
+                  row.mine ? "border-accent/60 bg-accent/10" : "bm-card",
                 )}
               >
-                <span className="font-display tabular-nums w-8 shrink-0 text-muted">{row.rank}</span>
+                <span className="font-display tabular-nums w-8 shrink-0 text-muted">
+                  {row.rank}
+                </span>
                 <span className="flex-1 min-w-0">
                   <span className="font-display tracking-wide block truncate">{row.name}</span>
-                  <span className="text-[11px] uppercase tracking-[0.14em] text-subtle">
+                  <span className="text-[11px] uppercase tracking-[0.06em] text-subtle">
                     {row.correct} correct · {row.accuracy}%
                   </span>
                 </span>
@@ -148,7 +156,7 @@ export function LeaderboardScreen() {
 
         {youOffBoard && you ? (
           <div className="mt-4 rounded-2xl border border-accent px-3 py-3">
-            <p className="text-[11px] uppercase tracking-[0.16em] text-muted">Your rank</p>
+            <p className="text-[11px] uppercase tracking-[0.1em] text-muted">Your rank</p>
             <p className="font-display tracking-wide mt-1">
               #{you.rank} — {you.name} — {you.score}
             </p>
@@ -169,7 +177,10 @@ function Seg<T extends string>({
   onChange: (v: T) => void;
 }) {
   return (
-    <div className="grid gap-1 rounded-3xl bg-surface p-1.5 border border-border" style={{ gridTemplateColumns: `repeat(${options.length}, minmax(0, 1fr))` }}>
+    <div
+      className="grid gap-1 rounded-3xl bm-seg p-1.5"
+      style={{ gridTemplateColumns: `repeat(${options.length}, minmax(0, 1fr))` }}
+    >
       {options.map(([id, label]) => (
         <button
           key={id}
@@ -189,8 +200,8 @@ function Seg<T extends string>({
 
 function Chip({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-2xl border border-border bg-surface px-3 py-3">
-      <p className="text-[11px] uppercase tracking-[0.16em] text-muted">{label}</p>
+    <div className="bm-card rounded-2xl px-3 py-3">
+      <p className="text-[11px] uppercase tracking-[0.1em] text-muted">{label}</p>
       <p className="mt-1 font-display text-2xl tabular-nums">{value}</p>
     </div>
   );

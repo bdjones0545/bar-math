@@ -27,19 +27,19 @@ export function SettingsScreen() {
         <button
           type="button"
           onClick={goHome}
-          className="size-11 rounded-2xl border border-border bg-surface grid place-items-center text-muted"
+          className="size-11 bm-card rounded-2xl grid place-items-center text-muted"
           aria-label="Back"
         >
           <ChevronLeft className="size-5" />
         </button>
-        <h1 className="flex-1 text-center font-display tracking-[0.22em] text-sm">SETTINGS</h1>
+        <h1 className="flex-1 text-center font-display tracking-[0.06em] text-sm">SETTINGS</h1>
         <span className="size-11" />
       </header>
 
       <div className="mt-8 max-w-md mx-auto space-y-8">
         <section>
-          <h2 className="text-[11px] uppercase tracking-[0.18em] text-muted">Units</h2>
-          <div className="mt-3 grid grid-cols-2 gap-2 rounded-3xl bg-surface p-1.5 border border-border">
+          <h2 className="text-[11px] uppercase tracking-[0.04em] text-muted">Units</h2>
+          <div className="mt-3 grid grid-cols-2 gap-2 rounded-3xl bm-seg p-1.5">
             {UNITS.map((u) => (
               <button
                 key={u}
@@ -57,7 +57,7 @@ export function SettingsScreen() {
         </section>
 
         <section>
-          <h2 className="text-[11px] uppercase tracking-[0.18em] text-muted">Difficulty</h2>
+          <h2 className="text-[11px] uppercase tracking-[0.04em] text-muted">Difficulty</h2>
           <div className="mt-3 space-y-2">
             {DIFFS.map((d) => {
               const meta = DIFFICULTY_META[d];
@@ -69,8 +69,8 @@ export function SettingsScreen() {
                   onClick={() => setDifficulty(d)}
                   aria-pressed={on}
                   className={cn(
-                    "w-full text-left rounded-2xl border p-4",
-                    on ? "border-accent bg-accent text-accent-fg" : "border-border bg-surface",
+                    "w-full text-left rounded-2xl p-4 border",
+                    on ? "border-accent bg-accent text-accent-fg bm-cta" : "bm-card",
                   )}
                 >
                   <p className="font-display text-lg tracking-wide">{meta.name}</p>
@@ -85,7 +85,7 @@ export function SettingsScreen() {
         </section>
 
         <section>
-          <h2 className="text-[11px] uppercase tracking-[0.18em] text-muted">Player name</h2>
+          <h2 className="text-[11px] uppercase tracking-[0.04em] text-muted">Player name</h2>
           <input
             defaultValue={playerName}
             maxLength={NAME_MAX}
@@ -96,19 +96,21 @@ export function SettingsScreen() {
                 e.target.value = next.name;
               }
             }}
-            className="mt-3 w-full h-12 rounded-2xl border border-border bg-surface px-4 text-fg"
+            className="mt-3 w-full h-12 bm-card rounded-2xl px-4 text-fg"
             placeholder="Shown on leaderboards"
             autoComplete="off"
           />
-          <p className="mt-2 text-xs text-subtle">2–16 characters. Saved on this device. Not a login.</p>
+          <p className="mt-2 text-xs text-subtle">
+            2–16 characters. Saved on this device. Not a login.
+          </p>
         </section>
 
         <section>
-          <h2 className="text-[11px] uppercase tracking-[0.18em] text-muted">Sound</h2>
+          <h2 className="text-[11px] uppercase tracking-[0.04em] text-muted">Sound</h2>
           <button
             type="button"
             onClick={() => setMuted(!muted)}
-            className="mt-3 w-full rounded-2xl border border-border bg-surface p-4 flex items-center justify-between"
+            className="mt-3 w-full bm-card rounded-2xl p-4 flex items-center justify-between"
           >
             <span className="font-display tracking-wide">Gym effects</span>
             <span className="text-sm text-muted">{muted ? "Muted" : "On"}</span>
@@ -116,7 +118,7 @@ export function SettingsScreen() {
         </section>
 
         <section>
-          <h2 className="text-[11px] uppercase tracking-[0.18em] text-muted">Progress</h2>
+          <h2 className="text-[11px] uppercase tracking-[0.04em] text-muted">Progress</h2>
           <Button
             variant="secondary"
             className="w-full mt-3"
