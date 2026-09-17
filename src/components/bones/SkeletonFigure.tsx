@@ -63,11 +63,29 @@ export function SkeletonFigure({
           <stop offset="45%" stopColor="var(--color-accent)" stopOpacity="0.12" />
           <stop offset="100%" stopColor="var(--color-surface)" stopOpacity="0.2" />
         </linearGradient>
+        {/* Blur then re-threshold alpha: rounds polygon corners into organic edges. */}
+        <filter
+          id="lab-soft"
+          x="-5%"
+          y="-5%"
+          width="110%"
+          height="110%"
+          colorInterpolationFilters="sRGB"
+        >
+          <feGaussianBlur stdDeviation="1.6" result="blur" />
+          <feColorMatrix
+            in="blur"
+            type="matrix"
+            values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 18 -7"
+          />
+        </filter>
       </defs>
       <ellipse cx="110" cy="538" rx="58" ry="10" className="lab-floor" />
-      {SILHOUETTE[view].map((d, i) => (
-        <path key={i} d={d} className="skeleton-body" fill={`url(#${uid}-body)`} />
-      ))}
+      <g className="lab-soft">
+        {SILHOUETTE[view].map((d, i) => (
+          <path key={i} d={d} className="skeleton-body" fill={`url(#${uid}-body)`} />
+        ))}
+      </g>
       {paths.map((p) => {
         const isTarget = p.boneId === target;
         const isMiss = p.boneId === missId;
@@ -91,7 +109,12 @@ export function SkeletonFigure({
             >
               <title>{p.boneId}</title>
             </path>
-            <path d={p.d} fill={`url(#${uid}-bone)`} className="skeleton-bone-gloss" pointerEvents="none" />
+            <path
+              d={p.d}
+              fill={`url(#${uid}-bone)`}
+              className="skeleton-bone-gloss"
+              pointerEvents="none"
+            />
           </g>
         );
       })}
