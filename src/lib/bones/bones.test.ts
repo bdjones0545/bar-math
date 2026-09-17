@@ -39,7 +39,24 @@ describe("catalog", () => {
   it("covers the required bone set", () => {
     const ids = BONES.map((b) => b.id);
     for (const id of REQUIRED) assert.ok(ids.includes(id), id);
-    assert.equal(BONES.length, REQUIRED.length);
+    assert.equal(BONES.length, REQUIRED.length + 5);
+  });
+
+  it("deepens the roster at coach and elite", () => {
+    const athlete = bonesForDifficulty("athlete").map((b) => b.id);
+    const coach = bonesForDifficulty("coach").map((b) => b.id);
+    const elite = bonesForDifficulty("elite").map((b) => b.id);
+    for (const id of ["sacrum", "calcaneus"] as BoneId[]) {
+      assert.ok(coach.includes(id), id);
+      assert.equal(athlete.includes(id), false, id);
+    }
+    for (const id of ["coccyx", "zygomatic", "maxilla"] as BoneId[]) {
+      assert.ok(elite.includes(id), id);
+      assert.equal(coach.includes(id), false, id);
+    }
+    for (const b of BONES) {
+      for (const n of b.neighbors) assert.ok(n in BONE_BY_ID, `${b.id} -> ${n}`);
+    }
   });
 
   it("marks groups clearly", () => {
@@ -92,13 +109,19 @@ describe("paths", () => {
   it("patella is anterior only", () => {
     assert.ok(viewsForBone("patella").includes("front"));
     assert.equal(viewsForBone("patella").includes("back"), false);
-    assert.equal(pathsForView("back").some((p) => p.boneId === "patella"), false);
+    assert.equal(
+      pathsForView("back").some((p) => p.boneId === "patella"),
+      false,
+    );
   });
 
   it("scapula and spine are posterior", () => {
     assert.deepEqual(viewsForBone("scapula"), ["back"]);
     assert.deepEqual(viewsForBone("vertebral_column"), ["back"]);
-    assert.equal(pathsForView("front").some((p) => p.boneId === "scapula"), false);
+    assert.equal(
+      pathsForView("front").some((p) => p.boneId === "scapula"),
+      false,
+    );
   });
 
   it("mandible and sternum are anterior", () => {

@@ -38,6 +38,7 @@ export function AnatomyLab({
   reduced,
   ripples,
   caption,
+  shot,
   onSkipIntro,
   figure,
   footer,
@@ -58,6 +59,8 @@ export function AnatomyLab({
   reduced: boolean;
   ripples: LabRipple[];
   caption: LabCaption | null;
+  /** Per-question shot clock (Coach/Elite). */
+  shot?: { frac: number; urgent: boolean } | null;
   onSkipIntro: () => void;
   figure: ReactNode;
   footer?: ReactNode;
@@ -108,6 +111,14 @@ export function AnatomyLab({
           {viewLabel}
           {group ? " · group" : ""}
         </p>
+        {shot ? (
+          <div className="bm-timer mt-2 max-w-xs mx-auto" aria-hidden="true">
+            <div
+              className={cn("bm-timer-fill", shot.urgent && "is-urgent")}
+              style={{ width: `${Math.max(0, shot.frac * 100)}%` }}
+            />
+          </div>
+        ) : null}
       </div>
 
       <div

@@ -14,7 +14,10 @@ export interface BonePath {
 type Pt = [number, number];
 
 function poly(pts: Pt[]): string {
-  return pts.map((p, i) => `${i === 0 ? "M" : "L"}${p[0].toFixed(1)} ${p[1].toFixed(1)}`).join(" ") + " Z";
+  return (
+    pts.map((p, i) => `${i === 0 ? "M" : "L"}${p[0].toFixed(1)} ${p[1].toFixed(1)}`).join(" ") +
+    " Z"
+  );
 }
 
 function mirrorX(x: number): number {
@@ -246,6 +249,24 @@ export const BONE_PATHS: BonePath[] = [
   ...bilateral("carpals", "front", CARPALS_L),
   ...bilateral("metacarpals", "front", METACARPALS_L),
   ...bilateral("phalanges_hand", "front", PHALANGES_HAND_L),
+  ...bilateral(
+    "zygomatic",
+    "front",
+    [
+      [86, 44],
+      [80, 50],
+      [86, 58],
+      [96, 56],
+      [98, 48],
+    ],
+    { narrow: true },
+  ),
+  center("maxilla", "front", [
+    [96, 58],
+    [124, 58],
+    [122, 72],
+    [98, 72],
+  ]),
   ...bilateral("tarsals", "front", TARSALS_L),
   ...bilateral("metatarsals", "front", METATARSALS_L),
   ...bilateral("phalanges_foot", "front", PHALANGES_FOOT_L),
@@ -287,6 +308,33 @@ export const BONE_PATHS: BonePath[] = [
   ...bilateral("tarsals", "back", TARSALS_L),
   ...bilateral("metatarsals", "back", METATARSALS_L),
   ...bilateral("phalanges_foot", "back", PHALANGES_FOOT_L),
+  center("sacrum", "back", [
+    [98, 206],
+    [122, 206],
+    [120, 236],
+    [110, 246],
+    [100, 236],
+  ]),
+  center(
+    "coccyx",
+    "back",
+    [
+      [106, 244],
+      [114, 244],
+      [112, 258],
+      [110, 262],
+      [108, 258],
+    ],
+    { narrow: true },
+  ),
+  ...bilateral("calcaneus", "back", [
+    [50, 486],
+    [46, 500],
+    [52, 512],
+    [70, 512],
+    [74, 498],
+    [68, 486],
+  ]),
 ];
 
 export const SILHOUETTE: Record<AnatomyView, string[]> = {

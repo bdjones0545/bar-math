@@ -22,7 +22,14 @@ export type BoneId =
   | "fibula"
   | "tarsals"
   | "metatarsals"
-  | "phalanges_foot";
+  | "phalanges_foot"
+  // Coach
+  | "sacrum"
+  | "calcaneus"
+  // Elite
+  | "coccyx"
+  | "zygomatic"
+  | "maxilla";
 
 export interface BoneDef {
   id: BoneId;
@@ -289,6 +296,69 @@ export const BONES: BoneDef[] = [
     cue: "Toes — bone group",
     fact: "Foot phalanges are the toe bones.",
     neighbors: ["metatarsals", "tarsals"],
+  },
+
+  // ---- Coach ----
+  {
+    id: "sacrum",
+    name: "Sacrum",
+    gymName: "Tailbone base",
+    speedName: "SACRUM",
+    view: "back",
+    group: false,
+    min: "coach",
+    cue: "Triangular bone at the base of the spine, between the hips",
+    fact: "The sacrum is five fused vertebrae that lock the spine into the pelvis.",
+    neighbors: ["pelvis", "vertebral_column", "coccyx"],
+  },
+  {
+    id: "calcaneus",
+    name: "Calcaneus",
+    gymName: "Heel bone",
+    speedName: "HEEL",
+    view: "back",
+    group: false,
+    min: "coach",
+    cue: "The heel",
+    fact: "The calcaneus is the heel bone — the Achilles tendon anchors to it.",
+    neighbors: ["tarsals", "tibia", "fibula"],
+  },
+  // ---- Elite ----
+  {
+    id: "coccyx",
+    name: "Coccyx",
+    gymName: "Tailbone",
+    speedName: "COCCYX",
+    view: "back",
+    group: false,
+    min: "elite",
+    cue: "Tiny tip below the sacrum",
+    fact: "The coccyx is the vestigial tailbone — three to five fused segments at the very end of the spine.",
+    neighbors: ["sacrum", "pelvis"],
+  },
+  {
+    id: "zygomatic",
+    name: "Zygomatic",
+    gymName: "Cheekbone",
+    speedName: "CHEEK",
+    view: "front",
+    group: false,
+    min: "elite",
+    cue: "The cheekbone",
+    fact: "The zygomatic bone forms the cheek and the outer rim of the eye socket.",
+    neighbors: ["skull", "maxilla", "mandible"],
+  },
+  {
+    id: "maxilla",
+    name: "Maxilla",
+    gymName: "Upper jaw",
+    speedName: "MAXILLA",
+    view: "front",
+    group: false,
+    min: "elite",
+    cue: "Upper jaw, above the teeth",
+    fact: "The maxilla is the fixed upper jaw; it holds the upper teeth and forms the floor of the eye sockets.",
+    neighbors: ["mandible", "zygomatic", "skull"],
   },
 ];
 
