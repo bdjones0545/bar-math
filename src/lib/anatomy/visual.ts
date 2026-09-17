@@ -26,6 +26,20 @@ export const MUSCLE_BAND: Record<MuscleId, MuscleBand> = {
   tibialis_anterior: "calf",
   gastrocnemius: "calf",
   soleus: "calf",
+  serratus_anterior: "torso",
+  adductors: "leg",
+  sternocleidomastoid: "shoulder",
+  gluteus_medius: "leg",
+  rhomboids: "torso",
+  infraspinatus: "shoulder",
+  pectineus: "leg",
+  sartorius: "leg",
+  tensor_fasciae_latae: "leg",
+  iliopsoas: "core",
+  brachialis: "arm",
+  piriformis: "leg",
+  teres_major: "shoulder",
+  quadratus_lumborum: "core",
 };
 
 export const BONE_BAND: Record<BoneId, BoneBand> = {
@@ -50,6 +64,11 @@ export const BONE_BAND: Record<BoneId, BoneBand> = {
   tarsals: "small",
   metatarsals: "small",
   phalanges_foot: "small",
+  sacrum: "girdle",
+  calcaneus: "small",
+  coccyx: "small",
+  zygomatic: "head",
+  maxilla: "head",
 };
 
 export function pathCentroid(d: string): { x: number; y: number } {
@@ -230,9 +249,10 @@ export function useSpeedClock(totalMs = SPEED_TOTAL_MS, introMs = SPEED_INTRO_MS
   };
 }
 
-export function pointerPct(
-  e: { clientX: number; clientY: number; currentTarget: Element },
-): { x: number; y: number } {
+export function pointerPct(e: { clientX: number; clientY: number; currentTarget: Element }): {
+  x: number;
+  y: number;
+} {
   const node = e.currentTarget;
   const svg = node instanceof SVGSVGElement ? node : node.closest("svg");
   const r = (svg ?? node).getBoundingClientRect();

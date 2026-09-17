@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ChevronLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { BodyFigure } from "@/components/anatomy/BodyFigure";
@@ -19,6 +19,7 @@ import {
   type AnatomyQuestion,
 } from "@/lib/anatomy/game";
 import { useLeaderboardTicket } from "@/lib/leaderboard/useTicket";
+import { labRules } from "@/lib/anatomy/rules";
 
 type Tab = "poke" | "name" | "speed";
 
@@ -99,9 +100,44 @@ function Play({
   const [flash, setFlash] = useState<"correct" | "wrong" | null>(null);
   const [picked, setPicked] = useState<string | null>(null);
   const [started, setStarted] = useState(() => Date.now());
+  const [timedOut, setTimedOut] = useState(false);
+  const [shotLeft, setShotLeft] = useState<number | null>(null);
+  const rules = labRules(difficulty);
   const muscle = MUSCLE_BY_ID[q.muscleId];
-  const reveal = flash === "correct" || misses >= 2;
+  const revealed = misses >= rules.revealAfterMisses;
+  const reveal = flash === "correct" || revealed;
+  /** Elite: a reveal ends the question — no retry on the highlighted region. */
+  const ended = revealed && rules.oneShot;
   const named = kind === "name";
+
+  // Shot clock (Coach/Elite): runs while the question is still open.
+  const clockOpen = rules.shotClockMs !== null && flash !== "correct" && !revealed;
+  useEffect(() => {
+    if (!clockOpen) return;
+    const total = rules.shotClockMs!;
+    const t0 = Date.now();
+    setShotLeft(total);
+    const id = window.setInterval(() => {
+      const left = total - (Date.now() - t0);
+      if (left <= 0) {
+        window.clearInterval(id);
+        setShotLeft(0);
+        setTimedOut(true);
+        return;
+      }
+      setShotLeft(left);
+    }, 100);
+    return () => window.clearInterval(id);
+    // Restart only when a new question opens, not on every miss.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [q.id, clockOpen && flash === null]);
+
+  useEffect(() => {
+    if (!timedOut) return;
+    setTimedOut(false);
+    // Out of time: counts as enough misses to reveal.
+    failRef.current(null, true);
+  }, [timedOut]);
 
   function next(from = q.muscleId) {
     setQ(makeAnatomyQuestion(difficulty, kind, from));
@@ -111,6 +147,7 @@ function Play({
     setFlash(null);
     setPicked(null);
     setStarted(Date.now());
+    setShotLeft(null);
   }
 
   function succeed() {
@@ -132,37 +169,45 @@ function Play({
     window.setTimeout(() => next(), 1600);
   }
 
-  function fail(id: MuscleId | null) {
+  function fail(id: MuscleId | null, outOfTime = false) {
+    if (ended || flash === "correct") return;
     sfx.wrong();
     lab.miss();
     setStreak(0);
-    setMisses((n) => n + 1);
+    const nextMisses = outOfTime ? rules.revealAfterMisses : misses + 1;
+    setMisses(nextMisses);
     setMissId(id);
     setFlash("wrong");
     if (misses === 0) setTally((t) => ({ ...t, incorrect: t.incorrect + 1 }));
     record({ hit: false, xp: 0, streak: 0 });
+    if (rules.oneShot && nextMisses >= rules.revealAfterMisses) {
+      window.setTimeout(() => next(), 1800);
+    }
   }
+  const failRef = useRef(fail);
+  failRef.current = fail;
 
   function onPoke(id: MuscleId | null, pt?: { x: number; y: number }) {
     if (pt) lab.impact(pt.x, pt.y);
-    if (kind !== "poke" || flash === "correct") return;
+    if (kind !== "poke" || flash === "correct" || ended) return;
     if (id === q.muscleId) succeed();
     else fail(id);
   }
 
   function onName(id: MuscleId) {
-    if (kind !== "name" || flash === "correct") return;
+    if (kind !== "name" || flash === "correct" || ended) return;
     setPicked(id);
     if (id === q.muscleId) succeed();
     else fail(id);
   }
 
   function showMe() {
-    setMisses(2);
+    setMisses(rules.revealAfterMisses);
     setFlash("wrong");
   }
 
   const wrongName = missId ? MUSCLE_BY_ID[missId] : null;
+  const timedOutTitle = shotLeft === 0 ? "TIME" : "MISSED";
   let caption: LabCaption | null = null;
   if (flash === "correct") {
     caption = {
@@ -171,12 +216,12 @@ function Play({
       subtitle: muscle.gymName,
       body: q.fact,
     };
-  } else if (misses >= 2) {
+  } else if (revealed) {
     caption = {
-      tone: "reveal",
-      title: muscle.name.toUpperCase(),
-      subtitle: `${muscle.gymName} · ${q.cue}`,
-      body: named ? "Pick it from the list." : "Tap the highlighted region.",
+      tone: ended ? "wrong" : "reveal",
+      title: ended ? `${timedOutTitle} — ${muscle.name.toUpperCase()}` : muscle.name.toUpperCase(),
+      subtitle: `${muscle.deep ? "Deep · " : ""}${q.cue}`,
+      body: ended ? q.fact : named ? "Pick it from the list." : "Tap the highlighted region.",
     };
   } else if (flash === "wrong") {
     caption = {
@@ -185,9 +230,13 @@ function Play({
       subtitle: wrongName
         ? `That was the ${displayName(wrongName, difficulty).toLowerCase()}`
         : "Nothing there",
-      action: { label: "Show me", onClick: showMe },
+      action: rules.showMe ? { label: "Show me", onClick: showMe } : undefined,
     };
   }
+  const shot =
+    rules.shotClockMs !== null && shotLeft !== null && !ended && flash !== "correct"
+      ? { frac: shotLeft / rules.shotClockMs, urgent: shotLeft / rules.shotClockMs < 0.3 }
+      : null;
 
   return (
     <AnatomyLab
@@ -206,15 +255,17 @@ function Play({
       reduced={lab.reduced}
       ripples={lab.ripples}
       caption={caption}
+      shot={shot}
       onSkipIntro={lab.skipIntro}
       figure={
         <BodyFigure
           view={muscle.view}
+          difficulty={difficulty}
           target={named || reveal ? q.muscleId : null}
           missId={missId}
           reveal={reveal}
-          fatHit={difficulty === "rookie"}
-          locked={flash === "correct"}
+          fatHit={rules.fatHit}
+          locked={flash === "correct" || ended}
           hit={flash}
           onPoke={onPoke}
         />
@@ -404,6 +455,7 @@ function SpeedPlay({
         figure={
           <BodyFigure
             view={muscle.view}
+            difficulty={difficulty}
             target={null}
             missId={null}
             reveal={false}

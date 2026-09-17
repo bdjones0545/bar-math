@@ -29,12 +29,67 @@ describe("catalog", () => {
     ] as MuscleId[]) {
       assert.ok(ids.includes(id), id);
     }
-    assert.equal(MUSCLES.filter((m) => m.view === "front").length, 8);
-    assert.equal(MUSCLES.filter((m) => m.view === "back").length, 10);
+    assert.equal(MUSCLES.filter((m) => m.view === "front").length, 16);
+    assert.equal(MUSCLES.filter((m) => m.view === "back").length, 16);
+  });
+
+  it("deepens the roster at coach and elite", () => {
+    const rookie = musclesForDifficulty("rookie").map((m) => m.id);
+    const athlete = musclesForDifficulty("athlete").map((m) => m.id);
+    const coach = musclesForDifficulty("coach").map((m) => m.id);
+    const elite = musclesForDifficulty("elite").map((m) => m.id);
+    assert.equal(rookie.length, 8);
+    assert.equal(athlete.length, 14);
+    assert.equal(coach.length, 24);
+    assert.equal(elite.length, 32);
+    for (const id of [
+      "serratus_anterior",
+      "adductors",
+      "gluteus_medius",
+      "rhomboids",
+      "infraspinatus",
+      "sternocleidomastoid",
+    ] as MuscleId[]) {
+      assert.ok(coach.includes(id), id);
+      assert.equal(athlete.includes(id), false, id);
+    }
+    for (const id of [
+      "piriformis",
+      "pectineus",
+      "sartorius",
+      "iliopsoas",
+      "quadratus_lumborum",
+      "teres_major",
+      "brachialis",
+      "tensor_fasciae_latae",
+    ] as MuscleId[]) {
+      assert.ok(elite.includes(id), id);
+      assert.equal(coach.includes(id), false, id);
+    }
+  });
+
+  it("flags deep muscles", () => {
+    for (const id of ["piriformis", "iliopsoas", "rhomboids", "quadratus_lumborum"] as MuscleId[]) {
+      assert.equal(MUSCLE_BY_ID[id].deep, true, id);
+    }
+    assert.equal(Boolean(MUSCLE_BY_ID.pectineus.deep), false);
+    assert.equal(Boolean(MUSCLE_BY_ID.deltoid.deep), false);
+  });
+
+  it("neighbors reference real muscles", () => {
+    for (const m of MUSCLES) {
+      for (const n of m.neighbors) assert.ok(n in MUSCLE_BY_ID, `${m.id} -> ${n}`);
+    }
   });
 
   it("marks groups clearly", () => {
-    for (const id of ["quadriceps", "hamstrings", "forearm_flexors", "forearm_extensors", "erector_spinae"] as MuscleId[]) {
+    for (const id of [
+      "quadriceps",
+      "hamstrings",
+      "forearm_flexors",
+      "forearm_extensors",
+      "erector_spinae",
+    ] as MuscleId[]) {
       assert.equal(MUSCLE_BY_ID[id].group, true);
     }
     assert.equal(MUSCLE_BY_ID.deltoid.group, false);
@@ -108,7 +163,10 @@ describe("validation", () => {
 
   it("poke prompts stay view-accurate", () => {
     const q = makeAnatomyQuestion("athlete", "poke");
-    assert.equal(MUSCLE_BY_ID[q.muscleId].view === "front" || MUSCLE_BY_ID[q.muscleId].view === "back", true);
+    assert.equal(
+      MUSCLE_BY_ID[q.muscleId].view === "front" || MUSCLE_BY_ID[q.muscleId].view === "back",
+      true,
+    );
     const speed = makeSpeedPrompt("athlete");
     assert.match(speed.prompt, /^POKE THE /);
   });

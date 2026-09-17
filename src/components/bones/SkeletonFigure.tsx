@@ -2,7 +2,8 @@ import { useId } from "react";
 import type { PointerEvent } from "react";
 import { SKELETON_VB, SILHOUETTE, pathsForView, type BonePath } from "@/lib/bones/paths";
 import type { AnatomyView } from "@/lib/anatomy/muscles";
-import type { BoneId } from "@/lib/bones/bones";
+import { bonesForDifficulty, type BoneId } from "@/lib/bones/bones";
+import type { Difficulty } from "@/lib/game/types";
 import { BONE_BAND, pointerPct } from "@/lib/anatomy/visual";
 import { cn } from "@/lib/utils";
 
@@ -13,6 +14,7 @@ const SKULL_MARKS = [
 
 export function SkeletonFigure({
   view,
+  difficulty,
   target,
   missId,
   reveal,
@@ -23,6 +25,7 @@ export function SkeletonFigure({
   onWhack,
 }: {
   view: AnatomyView;
+  difficulty: Difficulty;
   target: BoneId | null;
   missId: BoneId | null;
   reveal: boolean;
@@ -33,7 +36,8 @@ export function SkeletonFigure({
   onWhack: (id: BoneId | null, pt?: { x: number; y: number }) => void;
 }) {
   const uid = useId();
-  const paths = pathsForView(view);
+  const pool = new Set(bonesForDifficulty(difficulty).map((b) => b.id));
+  const paths = pathsForView(view).filter((p) => pool.has(p.boneId));
 
   function handlePath(p: BonePath, e: PointerEvent<SVGPathElement>) {
     e.stopPropagation();

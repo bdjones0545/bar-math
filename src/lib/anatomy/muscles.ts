@@ -19,7 +19,23 @@ export type MuscleId =
   | "hamstrings"
   | "gastrocnemius"
   | "soleus"
-  | "forearm_extensors";
+  | "forearm_extensors"
+  // Coach
+  | "serratus_anterior"
+  | "adductors"
+  | "sternocleidomastoid"
+  | "gluteus_medius"
+  | "rhomboids"
+  | "infraspinatus"
+  // Elite
+  | "pectineus"
+  | "sartorius"
+  | "tensor_fasciae_latae"
+  | "iliopsoas"
+  | "brachialis"
+  | "piriformis"
+  | "teres_major"
+  | "quadratus_lumborum";
 
 export interface MuscleDef {
   id: MuscleId;
@@ -29,6 +45,8 @@ export interface MuscleDef {
   view: AnatomyView;
   group: boolean;
   min: Difficulty;
+  /** Lies under other muscle — drawn dashed and called out as deep. */
+  deep?: boolean;
   cue: string;
   fact: string;
   neighbors: MuscleId[];
@@ -250,6 +268,182 @@ export const MUSCLES: MuscleDef[] = [
     cue: "Outer forearm — muscle group",
     fact: "Forearm extensors are a group that lifts the wrist and fingers.",
     neighbors: ["triceps_brachii"],
+  },
+
+  // ---- Coach: the next layer a strength coach is expected to know ----
+  {
+    id: "serratus_anterior",
+    name: "Serratus anterior",
+    gymName: "Serratus",
+    speedName: "SERRATUS",
+    view: "front",
+    group: false,
+    min: "coach",
+    cue: "Finger-like slips on the side of the ribcage",
+    fact: "Serratus anterior pulls the shoulder blade forward — the 'boxer's muscle' behind every punch and push-up plus.",
+    neighbors: ["pectoralis_major", "external_obliques", "latissimus_dorsi"],
+  },
+  {
+    id: "adductors",
+    name: "Adductors",
+    gymName: "Inner thigh",
+    speedName: "ADDUCTOR",
+    view: "front",
+    group: true,
+    min: "coach",
+    cue: "Inner thigh — muscle group",
+    fact: "The adductor group pulls the leg toward midline and stabilizes every squat and lunge.",
+    neighbors: ["quadriceps", "pectineus", "sartorius"],
+  },
+  {
+    id: "sternocleidomastoid",
+    name: "Sternocleidomastoid",
+    gymName: "Neck",
+    speedName: "SCM",
+    view: "front",
+    group: false,
+    min: "coach",
+    cue: "The rope on the front of the neck",
+    fact: "Sternocleidomastoid turns and tilts the head; it stands out when you look over a shoulder.",
+    neighbors: ["trapezius", "deltoid"],
+  },
+  {
+    id: "gluteus_medius",
+    name: "Gluteus medius",
+    gymName: "Side glute",
+    speedName: "GLUTE MED",
+    view: "back",
+    group: false,
+    min: "coach",
+    cue: "Upper outer hip",
+    fact: "Gluteus medius keeps the pelvis level on one leg — weak glute med shows up as knees caving in.",
+    neighbors: ["gluteus_maximus", "piriformis", "tensor_fasciae_latae"],
+  },
+  {
+    id: "rhomboids",
+    name: "Rhomboids",
+    gymName: "Mid-back",
+    speedName: "RHOMBOID",
+    view: "back",
+    group: true,
+    min: "coach",
+    deep: true,
+    cue: "Between the shoulder blades, under the traps",
+    fact: "The rhomboids retract the shoulder blades; they sit deep to the trapezius and drive every row.",
+    neighbors: ["trapezius", "infraspinatus", "erector_spinae"],
+  },
+  {
+    id: "infraspinatus",
+    name: "Infraspinatus",
+    gymName: "Rotator cuff",
+    speedName: "INFRA",
+    view: "back",
+    group: false,
+    min: "coach",
+    cue: "On the shoulder blade, below the spine of the scapula",
+    fact: "Infraspinatus is the rotator-cuff muscle that externally rotates the arm — the one that stabilizes a bench press.",
+    neighbors: ["posterior_deltoid", "teres_major", "rhomboids"],
+  },
+
+  // ---- Elite: deep and small muscles you only find by knowing where to look ----
+  {
+    id: "pectineus",
+    name: "Pectineus",
+    gymName: "Groin",
+    speedName: "PECTINEUS",
+    view: "front",
+    group: false,
+    min: "elite",
+    cue: "Top of the inner thigh, in the groin crease",
+    fact: "Pectineus flexes and adducts the hip; it is the small muscle behind many 'groin pull' complaints.",
+    neighbors: ["adductors", "iliopsoas", "sartorius"],
+  },
+  {
+    id: "sartorius",
+    name: "Sartorius",
+    gymName: "Longest muscle",
+    speedName: "SARTORIUS",
+    view: "front",
+    group: false,
+    min: "elite",
+    cue: "A strap from the outer hip to the inner knee",
+    fact: "Sartorius is the longest muscle in the body; it crosses the thigh diagonally to cross the legs tailor-style.",
+    neighbors: ["quadriceps", "tensor_fasciae_latae", "adductors"],
+  },
+  {
+    id: "tensor_fasciae_latae",
+    name: "Tensor fasciae latae",
+    gymName: "TFL",
+    speedName: "TFL",
+    view: "front",
+    group: false,
+    min: "elite",
+    cue: "Small pad on the outer hip",
+    fact: "TFL tensions the IT band; it is the outer-hip muscle that gets overworked when the glutes don't fire.",
+    neighbors: ["sartorius", "quadriceps", "gluteus_medius"],
+  },
+  {
+    id: "iliopsoas",
+    name: "Iliopsoas",
+    gymName: "Hip flexors",
+    speedName: "PSOAS",
+    view: "front",
+    group: true,
+    min: "elite",
+    deep: true,
+    cue: "Deep in the lower belly, running into the groin",
+    fact: "Iliopsoas is the primary hip flexor, running from the lumbar spine over the pelvis to the femur.",
+    neighbors: ["rectus_abdominis", "pectineus", "external_obliques"],
+  },
+  {
+    id: "brachialis",
+    name: "Brachialis",
+    gymName: "Under-biceps",
+    speedName: "BRACHIALIS",
+    view: "front",
+    group: false,
+    min: "elite",
+    cue: "Outer upper arm, just above the elbow under the biceps",
+    fact: "Brachialis sits beneath the biceps and is the strongest elbow flexor — it is what hammer curls build.",
+    neighbors: ["biceps_brachii", "forearm_flexors", "triceps_brachii"],
+  },
+  {
+    id: "piriformis",
+    name: "Piriformis",
+    gymName: "Deep hip rotator",
+    speedName: "PIRIFORMIS",
+    view: "back",
+    group: false,
+    min: "elite",
+    deep: true,
+    cue: "A band across the upper glute, under gluteus maximus",
+    fact: "Piriformis externally rotates the hip and lies over the sciatic nerve — the reason a tight one mimics sciatica.",
+    neighbors: ["gluteus_maximus", "gluteus_medius"],
+  },
+  {
+    id: "teres_major",
+    name: "Teres major",
+    gymName: "Lat helper",
+    speedName: "TERES",
+    view: "back",
+    group: false,
+    min: "elite",
+    cue: "Small muscle off the bottom of the shoulder blade toward the armpit",
+    fact: "Teres major works with the lats to pull the arm down and in — the 'little lat'.",
+    neighbors: ["infraspinatus", "latissimus_dorsi", "posterior_deltoid"],
+  },
+  {
+    id: "quadratus_lumborum",
+    name: "Quadratus lumborum",
+    gymName: "QL",
+    speedName: "QL",
+    view: "back",
+    group: false,
+    min: "elite",
+    deep: true,
+    cue: "Deep low back, between the last rib and the pelvis",
+    fact: "Quadratus lumborum hikes the hip and side-bends the spine; it is the deep low-back muscle behind a lot of one-sided back pain.",
+    neighbors: ["erector_spinae", "latissimus_dorsi", "gluteus_medius"],
   },
 ];
 

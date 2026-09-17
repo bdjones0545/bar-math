@@ -12,7 +12,10 @@ export interface MusclePath {
 type Pt = [number, number];
 
 function poly(pts: Pt[]): string {
-  return pts.map((p, i) => `${i === 0 ? "M" : "L"}${p[0].toFixed(1)} ${p[1].toFixed(1)}`).join(" ") + " Z";
+  return (
+    pts.map((p, i) => `${i === 0 ? "M" : "L"}${p[0].toFixed(1)} ${p[1].toFixed(1)}`).join(" ") +
+    " Z"
+  );
 }
 
 function mirrorX(x: number): number {
@@ -110,6 +113,74 @@ export const MUSCLE_PATHS: MusclePath[] = [
     [68, 84],
   ]),
 
+  // FRONT — Coach layer
+  ...bilateral("serratus_anterior", "front", [
+    [56, 134],
+    [46, 144],
+    [48, 168],
+    [58, 174],
+    [66, 160],
+    [64, 142],
+  ]),
+  ...bilateral("adductors", "front", [
+    [104, 262],
+    [100, 296],
+    [98, 336],
+    [104, 354],
+    [110, 342],
+    [110, 290],
+    [108, 266],
+  ]),
+  ...bilateral("sternocleidomastoid", "front", [
+    [103, 70],
+    [97, 76],
+    [96, 90],
+    [104, 94],
+    [110, 86],
+    [108, 72],
+  ]),
+  // FRONT — Elite layer (small and deep, drawn last so they sit on top)
+  ...bilateral("iliopsoas", "front", [
+    [96, 212],
+    [90, 222],
+    [93, 246],
+    [102, 254],
+    [107, 236],
+    [103, 214],
+  ]),
+  ...bilateral("pectineus", "front", [
+    [100, 248],
+    [95, 256],
+    [97, 272],
+    [104, 274],
+    [109, 264],
+    [107, 248],
+  ]),
+  ...bilateral("tensor_fasciae_latae", "front", [
+    [60, 250],
+    [52, 258],
+    [52, 284],
+    [60, 292],
+    [67, 280],
+    [67, 257],
+  ]),
+  ...bilateral("sartorius", "front", [
+    [64, 246],
+    [58, 252],
+    [90, 354],
+    [100, 358],
+    [102, 348],
+    [70, 248],
+  ]),
+  ...bilateral("brachialis", "front", [
+    [36, 150],
+    [31, 160],
+    [33, 180],
+    [42, 185],
+    [47, 172],
+    [43, 152],
+  ]),
+
   // BACK
   ...bilateral("hamstrings", "back", [
     [78, 292],
@@ -199,6 +270,55 @@ export const MUSCLE_PATHS: MusclePath[] = [
     [68, 124],
     [76, 108],
     [70, 88],
+  ]),
+
+  // BACK — Coach layer
+  ...bilateral("gluteus_medius", "back", [
+    [66, 224],
+    [54, 234],
+    [54, 258],
+    [64, 268],
+    [76, 256],
+    [80, 236],
+  ]),
+  ...bilateral("rhomboids", "back", [
+    [108, 108],
+    [90, 120],
+    [88, 148],
+    [108, 160],
+  ]),
+  ...bilateral("infraspinatus", "back", [
+    [84, 120],
+    [70, 130],
+    [68, 150],
+    [80, 158],
+    [92, 148],
+    [92, 126],
+  ]),
+  // BACK — Elite layer
+  ...bilateral("teres_major", "back", [
+    [70, 152],
+    [60, 158],
+    [60, 170],
+    [70, 176],
+    [80, 168],
+    [80, 156],
+  ]),
+  ...bilateral("quadratus_lumborum", "back", [
+    [86, 196],
+    [76, 204],
+    [78, 232],
+    [90, 238],
+    [92, 216],
+    [90, 200],
+  ]),
+  ...bilateral("piriformis", "back", [
+    [100, 244],
+    [84, 250],
+    [70, 262],
+    [72, 270],
+    [88, 262],
+    [102, 254],
   ]),
 ];
 

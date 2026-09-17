@@ -1,12 +1,19 @@
 import { useId } from "react";
 import type { PointerEvent } from "react";
 import { ANATOMY_VB, SILHOUETTE, pathsForView, type MusclePath } from "@/lib/anatomy/paths";
-import type { AnatomyView, MuscleId } from "@/lib/anatomy/muscles";
+import {
+  MUSCLE_BY_ID,
+  musclesForDifficulty,
+  type AnatomyView,
+  type MuscleId,
+} from "@/lib/anatomy/muscles";
+import type { Difficulty } from "@/lib/game/types";
 import { MUSCLE_BAND, pointerPct } from "@/lib/anatomy/visual";
 import { cn } from "@/lib/utils";
 
 export function BodyFigure({
   view,
+  difficulty,
   target,
   missId,
   reveal,
@@ -17,6 +24,8 @@ export function BodyFigure({
   onPoke,
 }: {
   view: AnatomyView;
+  /** Only muscles in this difficulty's pool are drawn — the figure gets richer as you level. */
+  difficulty: Difficulty;
   target: MuscleId | null;
   missId: MuscleId | null;
   reveal: boolean;
@@ -27,7 +36,8 @@ export function BodyFigure({
   onPoke: (id: MuscleId | null, pt?: { x: number; y: number }) => void;
 }) {
   const uid = useId();
-  const paths = pathsForView(view);
+  const pool = new Set(musclesForDifficulty(difficulty).map((m) => m.id));
+  const paths = pathsForView(view).filter((p) => pool.has(p.muscleId));
 
   function handlePath(p: MusclePath, e: PointerEvent<SVGPathElement>) {
     e.stopPropagation();
@@ -98,6 +108,7 @@ export function BodyFigure({
               data-band={MUSCLE_BAND[p.muscleId]}
               className={cn(
                 "anatomy-muscle",
+                MUSCLE_BY_ID[p.muscleId].deep && "is-deep",
                 isTarget && reveal && "is-reveal",
                 isTarget && !reveal && "is-named",
                 isMiss && "is-miss",
