@@ -13,6 +13,7 @@ import { cn } from "@/lib/utils";
 import { BONE_BY_ID, displayBoneName, type BoneId } from "@/lib/bones/bones";
 import { SPEED_TOTAL_MS, useAnatomyLab, useSpeedClock } from "@/lib/anatomy/visual";
 import {
+  isCorrectWhack,
   makeBoneQuestion,
   makeBoneSpeedPrompt,
   type BoneKind,
@@ -190,14 +191,14 @@ function Play({
   function onWhack(id: BoneId | null, pt?: { x: number; y: number }) {
     if (pt) lab.impact(pt.x, pt.y);
     if (kind !== "whack" || flash === "correct" || ended) return;
-    if (id === q.boneId) succeed();
+    if (isCorrectWhack(q.boneId, id)) succeed();
     else fail(id);
   }
 
   function onName(id: BoneId) {
     if (kind !== "name" || flash === "correct" || ended) return;
     setPicked(id);
-    if (id === q.boneId) succeed();
+    if (isCorrectWhack(q.boneId, id)) succeed();
     else fail(id);
   }
 
@@ -344,7 +345,7 @@ function SpeedPlay({
     if (!clock.running) return;
     if (pt) lab.impact(pt.x, pt.y);
     const bone = BONE_BY_ID[q.boneId];
-    if (id === q.boneId) {
+    if (isCorrectWhack(q.boneId, id)) {
       sfx.correct();
       const nextStreak = streak + 1;
       setStreak(nextStreak);

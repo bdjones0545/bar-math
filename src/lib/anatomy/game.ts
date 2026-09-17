@@ -100,8 +100,10 @@ export function makeSpeedPrompt(difficulty: Difficulty, avoidId?: MuscleId): Ana
   };
 }
 
+/** A tap on a sub-muscle (rectus femoris) satisfies its parent prompt (quadriceps). */
 export function isCorrectPoke(target: MuscleId, tapped: MuscleId | null): boolean {
-  return tapped !== null && tapped === target;
+  if (tapped === null) return false;
+  return tapped === target || MUSCLE_BY_ID[tapped].parent === target;
 }
 
 export { MUSCLES, MUSCLE_BY_ID };

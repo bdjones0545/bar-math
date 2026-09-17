@@ -39,7 +39,7 @@ describe("catalog", () => {
   it("covers the required bone set", () => {
     const ids = BONES.map((b) => b.id);
     for (const id of REQUIRED) assert.ok(ids.includes(id), id);
-    assert.equal(BONES.length, REQUIRED.length + 5);
+    assert.equal(BONES.length, REQUIRED.length + 15);
   });
 
   it("deepens the roster at coach and elite", () => {
@@ -57,6 +57,20 @@ describe("catalog", () => {
     for (const b of BONES) {
       for (const n of b.neighbors) assert.ok(n in BONE_BY_ID, `${b.id} -> ${n}`);
     }
+  });
+
+  it("parts sit on a parent in the catalog and count for its prompt", () => {
+    const parts = BONES.filter((b) => b.parent);
+    assert.equal(parts.length, 10);
+    for (const b of parts) {
+      assert.ok(BONE_BY_ID[b.parent!], b.id);
+    }
+    assert.equal(isCorrectWhack("skull", "frontal_bone"), true);
+    assert.equal(isCorrectWhack("vertebral_column", "lumbar_spine"), true);
+    assert.equal(isCorrectWhack("pelvis", "ilium"), true);
+    assert.equal(isCorrectWhack("ulna", "olecranon"), true);
+    assert.equal(isCorrectWhack("frontal_bone", "skull"), false);
+    assert.equal(isCorrectWhack("lumbar_spine", "thoracic_spine"), false);
   });
 
   it("marks groups clearly", () => {
