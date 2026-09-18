@@ -14,6 +14,10 @@ export const ROUND_MIN_MS = 50_000;
 export const ROUND_MAX_MS = 15 * 60_000;
 export const STARTS_PER_HOUR = 20;
 export const SUBMITS_PER_HOUR = 10;
+/** Rate-limit windows are hourly; keep two so a window boundary never loses a count. */
+export const RATE_RETAIN_HOURS = 2;
+/** A started-but-never-submitted round is dead after the max round length plus slack. */
+export const ROUND_RETAIN_MS = 24 * 60 * 60_000;
 
 const BLOCKED = [
   "fuck",
@@ -55,9 +59,16 @@ export function hourWindowId(now = new Date()): string {
   return `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, "0")}-${String(now.getUTCDate()).padStart(2, "0")}T${String(now.getUTCHours()).padStart(2, "0")}`;
 }
 
-export function sanitizeName(raw: unknown): { ok: true; name: string } | { ok: false; error: string } {
+export function sanitizeName(
+  raw: unknown,
+): { ok: true; name: string } | { ok: false; error: string } {
   if (typeof raw !== "string") return { ok: false, error: "name" };
-  const stripped = raw.replace(/[\u0000-\u001f\u007f]/g, "").replace(/\s+/g, " ").trim();
+  // Strip C0 controls and DEL on purpose: names are rendered into HTML and logs.
+  const stripped = raw
+    // eslint-disable-next-line no-control-regex
+    .replace(/[\u0000-\u001f\u007f]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
   if (stripped.length < 2 || stripped.length > NAME_MAX) return { ok: false, error: "name" };
   if (!/^[\p{L}\p{N} .'_-]+$/u.test(stripped)) return { ok: false, error: "name" };
   const compact = stripped.toLowerCase().replace(/[^a-z0-9]/g, "");
@@ -70,7 +81,13 @@ export function accuracyOf(correct: number, incorrect: number): number {
   return asked === 0 ? 0 : Math.round((correct / asked) * 100);
 }
 
-export function scoreBounds(mode: LbMode): { maxCorrect: number; maxIncorrect: number; maxScore: number; minPer: number; maxPer: number } {
+export function scoreBounds(mode: LbMode): {
+  maxCorrect: number;
+  maxIncorrect: number;
+  maxScore: number;
+  minPer: number;
+  maxPer: number;
+} {
   if (mode === "bar") {
     return { maxCorrect: 50, maxIncorrect: 80, maxScore: 20000, minPer: 80, maxPer: 900 };
   }
@@ -96,7 +113,8 @@ export function validateResult(input: {
   if (correct === 0) {
     return score === 0 ? { ok: true } : { ok: false, error: "invalid" };
   }
-  if (score < correct * b.minPer || score > correct * b.maxPer) return { ok: false, error: "invalid" };
+  if (score < correct * b.minPer || score > correct * b.maxPer)
+    return { ok: false, error: "invalid" };
   return { ok: true };
 }
 
@@ -128,7 +146,10 @@ export function compareRank(a: Rankable, b: Rankable): number {
 export function rankIndex(entries: Rankable[], target: Rankable): number {
   const sorted = [...entries].sort(compareRank);
   return sorted.findIndex(
-    (e) => e.correct === target.correct && e.accuracy === target.accuracy && e.createdAt === target.createdAt,
+    (e) =>
+      e.correct === target.correct &&
+      e.accuracy === target.accuracy &&
+      e.createdAt === target.createdAt,
   );
 }
 

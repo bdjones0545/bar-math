@@ -79,7 +79,8 @@ else fail("name persist " + saved);
 const save = await page.evaluate(() => JSON.parse(localStorage.getItem("bar-math-save") || "{}"));
 if (save?.state?.playerName === "SpeedLab") ok("name in bar-math-save");
 else fail("save name");
-if (typeof save?.state?.clientId === "string" && save.state.clientId.length >= 8) ok("client id persisted");
+if (typeof save?.state?.clientId === "string" && save.state.clientId.length >= 8)
+  ok("client id persisted");
 else fail("client id");
 if (typeof save?.state?.xp === "number") ok("existing save compatible");
 else fail("xp missing");
@@ -163,6 +164,42 @@ if (!integrity.blank.ok && integrity.blank.error === "name") ok("blank name reje
 else ok("blank name rejected as " + integrity.blank.error);
 if (integrity.muscle.ok && integrity.bone.ok) ok("mode boards fetch separately");
 else fail("list boards");
+
+// The success path. Every earlier check is a rejection, and a broken elapsed
+// check produces those same rejections — so a real submission must land.
+// ROUND_MIN_MS is 50 s; wait it out once, then submit, duplicate, and read.
+const landed = await page.evaluate(async (roundMs) => {
+  const mod = await import("/src/lib/leaderboard/functions.ts");
+  const clientId = "playwright-client-0002";
+  const started = await mod.startLbRound({
+    data: { mode: "muscle", difficulty: "rookie", clientId },
+  });
+  if (!started.ok) return { started };
+  await new Promise((r) => setTimeout(r, roundMs));
+  const body = {
+    token: started.token,
+    clientId,
+    name: "Smoke",
+    score: 36,
+    correct: 3,
+    incorrect: 1,
+    accuracy: 75,
+  };
+  const first = await mod.submitLbScore({ data: body });
+  const again = await mod.submitLbScore({ data: body });
+  const board = await mod.listLbBoard({
+    data: { mode: "muscle", difficulty: "rookie", period: "today", clientId },
+  });
+  return { started, first, again, board };
+}, 51_000);
+if (landed.first?.ok && landed.first.rank >= 1) ok("valid submit lands with a rank");
+else fail("valid submit " + JSON.stringify(landed.first ?? landed.started));
+if (landed.again && !landed.again.ok && landed.again.error === "duplicate")
+  ok("second submit of the same round is a duplicate");
+else fail("duplicate " + JSON.stringify(landed.again));
+if (landed.board?.ok && landed.board.you && landed.board.you.name === "Smoke")
+  ok("submitted score shows as yours on the board");
+else fail("board you " + JSON.stringify(landed.board?.you ?? landed.board));
 
 await page.setViewportSize({ width: 360, height: 800 });
 await page.getByRole("button", { name: /Leaderboards/ }).click();
