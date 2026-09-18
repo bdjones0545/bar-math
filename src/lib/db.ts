@@ -129,11 +129,12 @@ function assertBarMathNeon(raw: string): void {
   if (database !== "neondb") {
     throw new Error(`DATABASE_URL database is ${database}, expected neondb`);
   }
+  // The Grok-era instance had these hosts. A database provisioned through the
+  // Vercel ↔ Neon integration gets a fresh host, so an unknown one is worth a
+  // log line, not a refusal: the *.neon.tech + neondb checks above still hold.
   const markers = ["withered-dew", "axzrmbbk", "bitter-bar-80085503"];
   if (!markers.some((m) => host.includes(m))) {
-    throw new Error(
-      "DATABASE_URL host does not match dedicated BAR MATH Neon project bitter-bar-80085503",
-    );
+    console.warn(`[db] neon host ${host} is not the original BAR MATH instance — proceeding`);
   }
 }
 
