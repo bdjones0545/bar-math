@@ -2,24 +2,27 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useGameStore } from "@/lib/game/store";
 import { submitLbScore } from "@/lib/leaderboard/functions";
-import { accuracyOf, NAME_MAX, type LbMode } from "@/lib/leaderboard/rules";
+import { NAME_MAX, type LbMode } from "@/lib/leaderboard/rules";
+import type { SpeedLogEntry } from "@/lib/leaderboard/speed";
+import type { Unit } from "@/lib/game/types";
 import { cn } from "@/lib/utils";
 
 export function SpeedSubmit({
   mode,
   ticket,
+  seed,
+  unit,
+  log,
   boardStatus,
-  score,
-  correct,
-  incorrect,
   personalBest,
 }: {
   mode: LbMode;
   ticket: { token: string } | null;
+  /** The round's question seed and answer log: the server grades the round from these. */
+  seed: number;
+  unit: Unit;
+  log: SpeedLogEntry[];
   boardStatus: "idle" | "ready" | "down";
-  score: number;
-  correct: number;
-  incorrect: number;
   personalBest: boolean;
 }) {
   const playerName = useGameStore((s) => s.playerName);
@@ -39,16 +42,10 @@ export function SpeedSubmit({
     setBusy(true);
     setError(null);
     try {
+      // Only the round itself is sent — what was asked, what was answered.
+      // The server replays it and posts the totals it computes.
       const result = await submitLbScore({
-        data: {
-          token: ticket.token,
-          clientId,
-          name,
-          score,
-          correct,
-          incorrect,
-          accuracy: accuracyOf(correct, incorrect),
-        },
+        data: { token: ticket.token, clientId, name, seed, unit, log },
       });
       if (result.ok) {
         setPlayerName(result.name);
@@ -59,6 +56,10 @@ export function SpeedSubmit({
         setError("This round was already submitted.");
       } else if (result.error === "rate") {
         setError("Easy — give it a minute before submitting again.");
+      } else if (result.error === "expired") {
+        setError("This round is too old to submit. Play another and submit it right away.");
+      } else if (result.error === "unverified") {
+        setError("This round could not be verified, so it was not posted.");
       } else {
         setError("Leaderboard temporarily unavailable. Your local score is safe.");
       }

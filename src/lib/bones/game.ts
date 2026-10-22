@@ -1,4 +1,5 @@
 import type { Difficulty } from "../game/types.ts";
+import type { Rng } from "../rng.ts";
 import type { AnatomyView } from "../anatomy/muscles.ts";
 import {
   BONE_BY_ID,
@@ -28,45 +29,45 @@ export interface BoneQuestion {
   choices: BoneChoice[] | null;
 }
 
-function shuffle<T>(items: T[]): T[] {
+function shuffle<T>(items: T[], rng: Rng = Math.random): T[] {
   const copy = [...items];
   for (let i = copy.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
+    const j = Math.floor(rng() * (i + 1));
     [copy[i], copy[j]] = [copy[j]!, copy[i]!];
   }
   return copy;
 }
 
-function pick<T>(items: T[]): T {
-  return items[Math.floor(Math.random() * items.length)]!;
+function pick<T>(items: T[], rng: Rng = Math.random): T {
+  return items[Math.floor(rng() * items.length)]!;
 }
 
 function labelFor(bone: BoneDef, difficulty: Difficulty): string {
   return displayBoneName(bone, difficulty);
 }
 
-function choicesFor(target: BoneDef, difficulty: Difficulty): BoneChoice[] {
+function choicesFor(target: BoneDef, difficulty: Difficulty, rng: Rng): BoneChoice[] {
   const pool = bonesForDifficulty(difficulty).filter((b) => b.id !== target.id);
   const neighborIds = new Set(target.neighbors);
   const neighbors = pool.filter((b) => neighborIds.has(b.id));
   const rest = pool.filter((b) => !neighborIds.has(b.id));
   const picked: BoneDef[] = [];
-  for (const n of shuffle(neighbors)) {
+  for (const n of shuffle(neighbors, rng)) {
     if (picked.length >= 3) break;
     picked.push(n);
   }
-  for (const n of shuffle(rest)) {
+  for (const n of shuffle(rest, rng)) {
     if (picked.length >= 3) break;
     picked.push(n);
   }
-  const options = shuffle([target, ...picked.slice(0, 3)]);
+  const options = shuffle([target, ...picked.slice(0, 3)], rng);
   return options.map((b) => ({ id: b.id, label: labelFor(b, difficulty) }));
 }
 
-function viewFor(bone: BoneDef, difficulty: Difficulty): AnatomyView {
+function viewFor(bone: BoneDef, difficulty: Difficulty, rng: Rng): AnatomyView {
   const available = viewsForBone(bone.id);
   if (available.length === 0) return bone.view;
-  if (difficulty === "elite" && available.length > 1) return pick(available);
+  if (difficulty === "elite" && available.length > 1) return pick(available, rng);
   return available.includes(bone.view) ? bone.view : available[0]!;
 }
 
@@ -74,11 +75,12 @@ export function makeBoneQuestion(
   difficulty: Difficulty,
   kind: BoneKind,
   avoidId?: BoneId,
+  rng: Rng = Math.random,
 ): BoneQuestion {
   const pool = bonesForDifficulty(difficulty);
   const usable = avoidId ? pool.filter((b) => b.id !== avoidId) : pool;
-  const bone = pick(usable.length ? usable : pool);
-  const view = viewFor(bone, difficulty);
+  const bone = pick(usable.length ? usable : pool, rng);
+  const view = viewFor(bone, difficulty, rng);
   if (kind === "name") {
     return {
       id: `name-${bone.id}`,
@@ -88,7 +90,7 @@ export function makeBoneQuestion(
       prompt: "WHAT BONE IS THIS?",
       fact: bone.fact,
       cue: bone.cue,
-      choices: choicesFor(bone, difficulty),
+      choices: choicesFor(bone, difficulty, rng),
     };
   }
   const name = difficulty === "rookie" ? bone.gymName : bone.name;
@@ -104,8 +106,12 @@ export function makeBoneQuestion(
   };
 }
 
-export function makeBoneSpeedPrompt(difficulty: Difficulty, avoidId?: BoneId): BoneQuestion {
-  const q = makeBoneQuestion(difficulty, "whack", avoidId);
+export function makeBoneSpeedPrompt(
+  difficulty: Difficulty,
+  avoidId?: BoneId,
+  rng: Rng = Math.random,
+): BoneQuestion {
+  const q = makeBoneQuestion(difficulty, "whack", avoidId, rng);
   const bone = BONE_BY_ID[q.boneId];
   return {
     ...q,

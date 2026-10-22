@@ -8,7 +8,10 @@ const fail = (m) => {
   fails += 1;
 };
 
-const browser = await chromium.launch({ args: ["--no-sandbox"] });
+const browser = await chromium.launch({
+  args: ["--no-sandbox"],
+  ...(process.env.PW_CHANNEL ? { channel: process.env.PW_CHANNEL } : {}),
+});
 const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
 const errors = [];
 page.on("pageerror", (e) => errors.push(e.message));
@@ -103,9 +106,12 @@ if (/POKE THE/.test(t)) ok("muscle speed still plays");
 else fail("muscle speed");
 await page.getByRole("button", { name: "Back", exact: true }).click();
 
+// A submission is now a round, not a score: the seed its questions came from
+// and what was answered. The server replays it (src/lib/leaderboard/speed.ts).
 const integrity = await page.evaluate(async () => {
   const mod = await import("/src/lib/leaderboard/functions.ts");
   const clientId = "playwright-client-0001";
+  const round = { seed: 1, unit: "lb", log: [{ a: null, ms: 900 }] };
   const started = await mod.startLbRound({
     data: { mode: "bar", difficulty: "athlete", clientId },
   });
@@ -115,10 +121,7 @@ const integrity = await page.evaluate(async () => {
           token: started.token,
           clientId,
           name: "Bryan",
-          score: 150,
-          correct: 1,
-          incorrect: 0,
-          accuracy: 100,
+          ...round,
         },
       })
     : { ok: false, error: "nostart" };
@@ -127,10 +130,7 @@ const integrity = await page.evaluate(async () => {
       token: "AAAAAAAAAAAAAAAAAAAAAAAA",
       clientId,
       name: "Hax",
-      score: 999999,
-      correct: 3,
-      incorrect: 0,
-      accuracy: 100,
+      ...round,
     },
   });
   const blank = started.ok
@@ -139,10 +139,7 @@ const integrity = await page.evaluate(async () => {
           token: started.token,
           clientId,
           name: "",
-          score: 150,
-          correct: 1,
-          incorrect: 0,
-          accuracy: 100,
+          ...round,
         },
       })
     : { ok: false, error: "nostart" };
@@ -171,20 +168,24 @@ else fail("list boards");
 const landed = await page.evaluate(async (roundMs) => {
   const mod = await import("/src/lib/leaderboard/functions.ts");
   const clientId = "playwright-client-0002";
+  const speed = await import("/src/lib/leaderboard/speed.ts");
+  const { seededRng } = await import("/src/lib/rng.ts");
   const started = await mod.startLbRound({
     data: { mode: "muscle", difficulty: "rookie", clientId },
   });
   if (!started.ok) return { started };
   await new Promise((r) => setTimeout(r, roundMs));
-  const body = {
-    token: started.token,
-    clientId,
-    name: "Smoke",
-    score: 36,
-    correct: 3,
-    incorrect: 1,
-    accuracy: 75,
-  };
+  // Three right taps on the questions this seed asks, then a miss.
+  const seed = 424242;
+  const rng = seededRng(seed);
+  let q = speed.nextMuscleSpeedQuestion(rng, "rookie");
+  const log = [];
+  for (let i = 0; i < 3; i++) {
+    log.push({ a: q.muscleId, ms: 900 });
+    q = speed.nextMuscleSpeedQuestion(rng, "rookie", q.muscleId);
+  }
+  log.push({ a: null, ms: 900 });
+  const body = { token: started.token, clientId, name: "Smoke", seed, unit: "lb", log };
   const first = await mod.submitLbScore({ data: body });
   const again = await mod.submitLbScore({ data: body });
   const board = await mod.listLbBoard({
@@ -194,6 +195,10 @@ const landed = await page.evaluate(async (roundMs) => {
 }, 51_000);
 if (landed.first?.ok && landed.first.rank >= 1) ok("valid submit lands with a rank");
 else fail("valid submit " + JSON.stringify(landed.first ?? landed.started));
+// The totals are the server's: 3 right (12 + 14 + 16 points), 1 wrong.
+if (landed.first?.correct === 3 && landed.first?.incorrect === 1 && landed.first?.score === 42)
+  ok("server graded the round itself (3 right, 1 wrong, 42)");
+else fail("server totals " + JSON.stringify(landed.first));
 if (landed.again && !landed.again.ok && landed.again.error === "duplicate")
   ok("second submit of the same round is a duplicate");
 else fail("duplicate " + JSON.stringify(landed.again));

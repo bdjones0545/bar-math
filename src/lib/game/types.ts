@@ -1,7 +1,18 @@
+import type { SpeedLogEntry } from "../leaderboard/speed.ts";
+
 export type Unit = "lb" | "kg";
 export type Difficulty = "rookie" | "athlete" | "coach" | "elite";
 export type Mode = "load" | "identify" | "speed" | "trainer";
-export type Screen = "home" | "tutorial" | "play" | "stats" | "settings" | "convert" | "anatomy" | "bones" | "leaderboards";
+export type Screen =
+  | "home"
+  | "tutorial"
+  | "play"
+  | "stats"
+  | "settings"
+  | "convert"
+  | "anatomy"
+  | "bones"
+  | "leaderboards";
 export type RoundKind = "load" | "identify";
 
 export type PlateSize = "xl" | "lg" | "md" | "sm" | "xs" | "mini";
@@ -49,6 +60,14 @@ export interface SpeedSession {
   streak: number;
   bestStreak: number;
   running: boolean;
+  /**
+   * The round's questions come from this seed, and `log` records every answer
+   * (and unit switch) in order, so the leaderboard server can replay the round
+   * and compute the score itself. `unit` is the unit the round started in.
+   */
+  seed: number;
+  unit: Unit;
+  log: SpeedLogEntry[];
 }
 
 export interface Feedback {

@@ -142,9 +142,9 @@ export function PlayScreen() {
             mode="bar"
             ticket={lb.ticket}
             boardStatus={lb.status}
-            score={speed.score}
-            correct={speed.correct}
-            incorrect={speed.incorrect}
+            seed={speed.seed}
+            unit={speed.unit}
+            log={speed.log}
             personalBest={speed.score > 0 && speed.score === bestSpeedScore}
           />
           <Button className="w-full mt-8" onClick={() => startMode("speed")}>
