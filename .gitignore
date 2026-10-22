@@ -10,3 +10,4 @@ artifacts
 .grok/skills
 .grok/references
 .grok/status
+.env*

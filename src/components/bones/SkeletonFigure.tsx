@@ -90,12 +90,28 @@ export function SkeletonFigure({
           <path key={i} d={d} className="skeleton-body" fill={`url(#${uid}-body)`} />
         ))}
       </g>
+      <g className="skeleton-landmarks" pointerEvents="none" aria-hidden="true">
+        <path d="M 110 92 L 110 244" />
+        {[112, 126, 140, 154, 168, 182].map((y) => (
+          <path key={y} d={`M 76 ${y} Q 110 ${y + 22} 144 ${y}`} />
+        ))}
+        <path d="M 84 217 Q 110 234 136 217" />
+        <circle cx="31" cy="210" r="5" />
+        <circle cx="189" cy="210" r="5" />
+        <circle cx="78" cy="374" r="6" />
+        <circle cx="142" cy="374" r="6" />
+      </g>
       {paths.map((p) => {
         const isTarget = p.boneId === target;
         const isMiss = p.boneId === missId;
         const correct = isTarget && hit === "correct";
         return (
           <g key={`${p.view}-${p.id}`}>
+            <path
+              d={p.d}
+              className={cn("skeleton-hitarea", p.narrow && "is-narrow")}
+              onPointerDown={(e) => handlePath(p, e)}
+            />
             <path
               id={`${p.view}-${p.id}`}
               d={p.d}
