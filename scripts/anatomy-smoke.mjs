@@ -8,7 +8,10 @@ const fail = (m) => {
   fails += 1;
 };
 
-const browser = await chromium.launch({ args: ["--no-sandbox"] });
+const browser = await chromium.launch({
+  args: ["--no-sandbox"],
+  ...(process.env.PW_CHANNEL ? { channel: process.env.PW_CHANNEL } : {}),
+});
 const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
 const errors = [];
 page.on("pageerror", (e) => errors.push(e.message));

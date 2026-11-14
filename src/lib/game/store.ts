@@ -1,11 +1,7 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import { explainLoad, makeRound, trainerCurriculum, tutorialTarget } from "./math";
-import {
-  barTotal,
-  parseWeightInput,
-  specFor,
-} from "./plates";
+import { barTotal, parseWeightInput, specFor } from "./plates";
 import {
   ACHIEVEMENTS,
   DIFFICULTY_META,
@@ -28,6 +24,8 @@ import type {
 } from "./types";
 import { SAVE_VERSION } from "./types";
 import type { LbMode } from "@/lib/leaderboard/rules";
+import { barSpeedPoints, nextBarSpeedRound } from "@/lib/leaderboard/speed";
+import { newSeed, seededRng, type Rng } from "@/lib/rng";
 
 const DIFFICULTIES: Difficulty[] = ["rookie", "athlete", "coach", "elite"];
 
@@ -131,18 +129,33 @@ export interface GameState {
   setLbFocus: (mode: LbMode | null) => void;
 }
 
-const emptySpeed = (): SpeedSession => ({
-  introMs: SPEED_INTRO_MS,
-  remainingMs: SPEED_ROUND_MS,
-  correct: 0,
-  incorrect: 0,
-  score: 0,
-  streak: 0,
-  bestStreak: 0,
-  running: true,
-});
+// The question stream of the speed round in progress. Not part of state: it is
+// a function, and a speed round never survives a reload anyway.
+let speedRng: Rng | null = null;
 
-function beginRound(state: GameState, mode: Mode): Partial<GameState> {
+const emptySpeed = (unit: Unit): SpeedSession => {
+  const seed = newSeed();
+  speedRng = seededRng(seed);
+  return {
+    seed,
+    unit,
+    log: [],
+    introMs: SPEED_INTRO_MS,
+    remainingMs: SPEED_ROUND_MS,
+    correct: 0,
+    incorrect: 0,
+    score: 0,
+    streak: 0,
+    bestStreak: 0,
+    running: true,
+  };
+};
+
+function beginRound(
+  state: GameState,
+  mode: Mode,
+  opts: { freshSpeed?: boolean } = {},
+): Partial<GameState> {
   const kind = mode === "identify" || mode === "trainer" ? "identify" : "load";
   let round: Round;
   if (mode === "trainer") {
@@ -158,14 +171,15 @@ function beginRound(state: GameState, mode: Mode): Partial<GameState> {
       hintChance: 0,
     });
   } else if (mode === "speed") {
-    const speedKind = Math.random() < 0.5 ? "load" : "identify";
-    round = makeRound({
-      unit: state.unit,
-      difficulty: state.difficulty,
-      mode,
-      kind: speedKind,
-      avoidCents: state.round?.targetCents,
-    });
+    // Same function, same seeded stream as the server's replay. The first
+    // question of a session avoids nothing: the previous session's last target
+    // is not part of this round's log.
+    round = nextBarSpeedRound(
+      speedRng ?? Math.random,
+      state.unit,
+      state.difficulty,
+      opts.freshSpeed ? undefined : state.round?.targetCents,
+    );
   } else {
     round = makeRound({
       unit: state.unit,
@@ -236,8 +250,14 @@ export const useGameStore = create<GameState>()(
       setUnit: (unit) => {
         const s = get();
         if (s.screen === "play") {
+          // Switching units mid speed round regenerates the question; the
+          // replay has to see that happen at the same point.
+          const speed = s.speed?.running
+            ? { ...s.speed, log: [...s.speed.log, { u: unit }] }
+            : s.speed;
           const next = {
             ...s,
+            speed,
             unit,
             sidePlates: [],
             identifyInput: "",
@@ -246,6 +266,7 @@ export const useGameStore = create<GameState>()(
           };
           set({
             unit,
+            speed,
             sidePlates: [],
             identifyInput: "",
             feedback: null,
@@ -265,6 +286,26 @@ export const useGameStore = create<GameState>()(
 
       setDifficulty: (difficulty) => {
         const s = get();
+        // A speed round belongs to the board of the difficulty it started on.
+        // Changing difficulty part-way restarts it rather than carrying points
+        // earned on easier questions onto a harder board.
+        if (s.speed) {
+          if (s.screen === "play" && s.mode === "speed") {
+            const speed = emptySpeed(s.unit);
+            set({
+              difficulty,
+              speed,
+              currentStreak: 0,
+              feedback: null,
+              ...beginRound({ ...s, difficulty, speed } as GameState, "speed", {
+                freshSpeed: true,
+              }),
+            });
+          } else {
+            set({ difficulty, speed: null });
+          }
+          return;
+        }
         if (s.screen === "play" && s.mode !== "trainer") {
           set({
             difficulty,
@@ -337,7 +378,7 @@ export const useGameStore = create<GameState>()(
           mode,
           gamesPlayed: s.gamesPlayed + 1,
           currentStreak: mode === "speed" ? 0 : s.currentStreak,
-          speed: mode === "speed" ? emptySpeed() : null,
+          speed: mode === "speed" ? emptySpeed(s.unit) : null,
           trainerIndex: mode === "trainer" ? 0 : s.trainerIndex,
           feedback: null,
         };
@@ -349,7 +390,7 @@ export const useGameStore = create<GameState>()(
           speed: next.speed,
           trainerIndex: next.trainerIndex,
           feedback: null,
-          ...beginRound(next as GameState, mode),
+          ...beginRound(next as GameState, mode, { freshSpeed: mode === "speed" }),
         });
       },
 
@@ -419,9 +460,20 @@ export const useGameStore = create<GameState>()(
 
         const attempts = round.attempts + 1;
         set({ round: { ...round, attempts } });
+        const answerMs = Math.max(0, Date.now() - (s.roundStartedAt || Date.now()));
+        // What the replay needs to grade this attempt the same way.
+        const logged = s.speed?.running
+          ? [
+              ...s.speed.log,
+              {
+                a: round.kind === "load" ? s.sidePlates.map((p) => p.cents) : loadedCents,
+                ms: answerMs,
+              },
+            ]
+          : null;
 
         if (loadedCents === round.targetCents) {
-          const elapsed = Date.now() - (s.roundStartedAt || Date.now());
+          const elapsed = answerMs;
           const nextStreak = (s.speed?.running ? s.speed.streak : s.currentStreak) + 1;
           const xp = xpForCorrect({
             difficulty: s.difficulty,
@@ -430,9 +482,7 @@ export const useGameStore = create<GameState>()(
             streak: nextStreak,
           });
           const platesForExplain =
-            round.kind === "load"
-              ? s.sidePlates.map((p) => p.cents)
-              : round.shownPlates;
+            round.kind === "load" ? s.sidePlates.map((p) => p.cents) : round.shownPlates;
           const explanation = explainLoad(s.unit, platesForExplain);
           const unlocked: string[] = [];
           const club = plateClubId(s.unit, round.targetCents);
@@ -443,11 +493,7 @@ export const useGameStore = create<GameState>()(
           if (nextStreak >= 25 && !s.achievements.includes("human-calculator")) {
             unlocked.push("human-calculator");
           }
-          if (
-            s.difficulty === "elite" &&
-            nextStreak >= 5 &&
-            !s.achievements.includes("elite-5")
-          ) {
+          if (s.difficulty === "elite" && nextStreak >= 5 && !s.achievements.includes("elite-5")) {
             unlocked.push("elite-5");
           }
           if (
@@ -487,8 +533,7 @@ export const useGameStore = create<GameState>()(
           // Only first-try solves count toward "fastest", and only outside the
           // speed round where the clock is the game itself.
           const countsForFastest = attempts === 1 && !s.speed?.running;
-          const newFastest =
-            countsForFastest && (s.fastestMs === null || elapsed < s.fastestMs);
+          const newFastest = countsForFastest && (s.fastestMs === null || elapsed < s.fastestMs);
 
           if (leveledUp) {
             sfx.levelUp();
@@ -504,10 +549,11 @@ export const useGameStore = create<GameState>()(
 
           const speedPatch: Partial<GameState> = {};
           if (s.speed?.running) {
-            const scoreGain = 100 + nextStreak * 10 + Math.max(0, 40 - Math.floor(elapsed / 200));
+            const scoreGain = barSpeedPoints(nextStreak, elapsed);
             const bestStreak = Math.max(s.speed.bestStreak, nextStreak);
             speedPatch.speed = {
               ...s.speed,
+              log: logged ?? s.speed.log,
               correct: s.speed.correct + 1,
               score: s.speed.score + scoreGain,
               streak: nextStreak,
@@ -556,6 +602,7 @@ export const useGameStore = create<GameState>()(
         if (s.speed?.running) {
           speedPatch.speed = {
             ...s.speed,
+            log: logged ?? s.speed.log,
             incorrect: s.speed.incorrect + 1,
             streak: 0,
           };
@@ -760,8 +807,7 @@ export const useGameStore = create<GameState>()(
         set({ boneIncorrect: s.boneIncorrect + 1 });
       },
 
-      setBoneSpeedBest: (score) =>
-        set({ boneBestSpeed: Math.max(get().boneBestSpeed, score) }),
+      setBoneSpeedBest: (score) => set({ boneBestSpeed: Math.max(get().boneBestSpeed, score) }),
 
       setClientId: (id) => {
         if (get().clientId) return;
@@ -827,7 +873,9 @@ export const useGameStore = create<GameState>()(
           boneBestStreak: asCount(p.boneBestStreak, current.boneBestStreak),
           boneBestSpeed: asCount(p.boneBestSpeed, current.boneBestSpeed),
           clientId:
-            typeof p.clientId === "string" && p.clientId.length >= 8 ? p.clientId : current.clientId,
+            typeof p.clientId === "string" && p.clientId.length >= 8
+              ? p.clientId
+              : current.clientId,
           playerName: typeof p.playerName === "string" ? p.playerName : current.playerName,
         };
       },

@@ -175,6 +175,19 @@ export default defineConfig(({ command, isPreview }) => ({
             // manifest + head-tag middleware). Nitro v3 defaults serverDir to
             // false, so removing this silently unwires /?install=1 on deploys.
             serverDir: "./server",
+            // Baseline response headers for every path, static assets
+            // included (the Vercel preset compiles route rules into edge
+            // config). No frame-ancestors on purpose: the app is designed to
+            // run inside the Grok App Builder preview frame.
+            routeRules: {
+              "/**": {
+                headers: {
+                  "x-content-type-options": "nosniff",
+                  "referrer-policy": "strict-origin-when-cross-origin",
+                  "permissions-policy": "camera=(), microphone=(), geolocation=(), payment=()",
+                },
+              },
+            },
           }),
         ]
       : []),

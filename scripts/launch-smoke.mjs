@@ -8,7 +8,10 @@ const fail = (m) => {
   fails += 1;
 };
 
-const browser = await chromium.launch({ args: ["--no-sandbox"] });
+const browser = await chromium.launch({
+  args: ["--no-sandbox"],
+  ...(process.env.PW_CHANNEL ? { channel: process.env.PW_CHANNEL } : {}),
+});
 const errors = [];
 
 async function fresh(w = 390, h = 844) {

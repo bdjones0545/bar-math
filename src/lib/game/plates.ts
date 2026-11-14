@@ -1,4 +1,4 @@
-import type { Difficulty, PlateSpec, PlateSize, Unit, UnitSpec } from "./types";
+import type { Difficulty, PlateSpec, PlateSize, Unit, UnitSpec } from "./types.ts";
 
 export const LB: UnitSpec = {
   id: "lb",

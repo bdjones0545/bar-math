@@ -94,6 +94,24 @@ export function BodyFigure({
           <path key={i} d={d} className="anatomy-body" fill={`url(#${uid}-body)`} />
         ))}
       </g>
+      <g className="anatomy-landmarks" pointerEvents="none" aria-hidden="true">
+        <path d="M 101 55 Q 110 60 119 55" />
+        <path d="M 110 72 L 110 92" />
+        {view === "front" ? (
+          <>
+            <path d="M 110 105 L 110 144" />
+            <path d="M 101 186 Q 110 191 119 186" />
+            <circle cx="110" cy="202" r="2.5" />
+            <path d="M 77 365 Q 82 370 88 365 M 132 365 Q 138 370 143 365" />
+          </>
+        ) : (
+          <>
+            <path d="M 110 94 L 110 226" />
+            <path d="M 75 120 Q 110 143 145 120" />
+            <path d="M 74 242 Q 110 258 146 242" />
+          </>
+        )}
+      </g>
       {paths.map((p) => {
         const isTarget = p.muscleId === target;
         const isMiss = p.muscleId === missId;
@@ -101,6 +119,11 @@ export function BodyFigure({
         const revealed = isTarget && reveal;
         return (
           <g key={p.id}>
+            <path
+              d={p.d}
+              className="anatomy-hitarea"
+              onPointerDown={(e) => handlePath(p, e)}
+            />
             <path
               id={p.id}
               d={p.d}

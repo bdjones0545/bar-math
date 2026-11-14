@@ -20,6 +20,13 @@ import {
   type AnatomyQuestion,
 } from "@/lib/anatomy/game";
 import { useLeaderboardTicket } from "@/lib/leaderboard/useTicket";
+import {
+  SPEED_ANSWER_MAX_MS,
+  tapSpeedPoints,
+  nextMuscleSpeedQuestion,
+  type SpeedLogEntry,
+} from "@/lib/leaderboard/speed";
+import { newSeed, seededRng, type Rng } from "@/lib/rng";
 import { labRules } from "@/lib/anatomy/rules";
 
 type Tab = "poke" | "name" | "speed";
@@ -316,6 +323,28 @@ function SpeedPlay({
   const [hit, setHit] = useState<"correct" | "wrong" | null>(null);
   const [finalized, setFinalized] = useState(false);
   const lb = useLeaderboardTicket("muscle", clock.running);
+  // The live round, graded tap by tap in order. Refs, not render-time state:
+  // two taps inside one frame must be judged against the question and streak
+  // the first tap left behind — which is exactly what the server's replay of
+  // this round's log does (src/lib/leaderboard/speed.ts).
+  const live = useRef<{
+    rng: Rng;
+    seed: number;
+    log: SpeedLogEntry[];
+    q: AnatomyQuestion;
+    streak: number;
+    lastAt: number;
+  }>({
+    rng: Math.random,
+    seed: 0,
+    log: [],
+    q,
+    streak: 0,
+    lastAt: 0,
+  });
+  useEffect(() => {
+    if (clock.running) live.current.lastAt = performance.now();
+  }, [clock.running]);
 
   // Bank the score once when the clock runs out.
   useEffect(() => {
@@ -337,30 +366,43 @@ function SpeedPlay({
     setBestStreak(0);
     setHit(null);
     setFinalized(false);
-    setQ(makeSpeedPrompt(difficulty));
+    const seed = newSeed();
+    const rng = seededRng(seed);
+    const first = nextMuscleSpeedQuestion(rng, difficulty);
+    live.current = { rng, seed, log: [], q: first, streak: 0, lastAt: performance.now() };
+    setQ(first);
     clock.start();
   }
 
   function onPoke(id: MuscleId | null, pt?: { x: number; y: number }) {
     if (!clock.running) return;
     if (pt) lab.impact(pt.x, pt.y);
-    const muscle = MUSCLE_BY_ID[q.muscleId];
-    if (isCorrectPoke(q.muscleId, id)) {
+    const r = live.current;
+    const now = performance.now();
+    r.log.push({
+      a: id,
+      ms: Math.min(SPEED_ANSWER_MAX_MS, Math.max(0, Math.round(now - r.lastAt))),
+    });
+    r.lastAt = now;
+    const target = r.q;
+    if (isCorrectPoke(target.muscleId, id)) {
       sfx.correct();
-      const nextStreak = streak + 1;
+      const nextStreak = r.streak + 1;
+      r.streak = nextStreak;
+      r.q = nextMuscleSpeedQuestion(r.rng, difficulty, target.muscleId);
       setStreak(nextStreak);
       setBestStreak((b) => Math.max(b, nextStreak));
       setCorrect((n) => n + 1);
-      const gained = 10 + Math.min(20, nextStreak * 2);
-      setScore((s) => s + gained);
+      setScore((s) => s + tapSpeedPoints(nextStreak));
       const xp = xpForCorrect({ difficulty, attempts: 1, elapsedMs: 800, streak: nextStreak });
       record({ hit: true, xp, streak: nextStreak });
       lab.celebrate(xp, nextStreak);
       setHit("correct");
-      setQ(makeSpeedPrompt(difficulty, muscle.id));
+      setQ(r.q);
       window.setTimeout(() => setHit(null), 180);
       return;
     }
+    r.streak = 0;
     sfx.wrong();
     lab.miss();
     setStreak(0);
@@ -392,10 +434,10 @@ function SpeedPlay({
         <SpeedSubmit
           mode="muscle"
           ticket={lb.ticket}
+          seed={live.current.seed}
+          unit="lb"
+          log={live.current.log}
           boardStatus={lb.status}
-          score={score}
-          correct={correct}
-          incorrect={incorrect}
           personalBest={score > 0 && score === Math.max(best, score)}
         />
         <Button className="mt-6 w-full" onClick={start}>

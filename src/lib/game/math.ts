@@ -5,19 +5,23 @@ import {
   platesAreValid,
   sideTotal,
   specFor,
-} from "./plates";
-import type { Difficulty, Mode, Round, RoundKind, Unit } from "./types";
+} from "./plates.ts";
+import type { Difficulty, Mode, Round, RoundKind, Unit } from "./types.ts";
+import type { Rng } from "../rng.ts";
 
 function uid(): string {
   return Math.random().toString(36).slice(2, 10);
 }
 
-function chance(p: number): boolean {
-  return Math.random() < p;
+// Every draw that shapes a question goes through `rng`, so a seeded stream
+// reproduces the same questions (src/lib/leaderboard/speed.ts). Cosmetic ids
+// (uid) stay on Math.random and never touch the stream.
+function chance(p: number, rng: Rng = Math.random): boolean {
+  return rng() < p;
 }
 
-function pick<T>(arr: T[]): T {
-  return arr[Math.floor(Math.random() * arr.length)]!;
+function pick<T>(arr: T[], rng: Rng = Math.random): T {
+  return arr[Math.floor(rng() * arr.length)]!;
 }
 
 function plateGroups(unit: Unit) {
@@ -41,39 +45,38 @@ function plateGroups(unit: Unit) {
   };
 }
 
-export function randomSide(unit: Unit, difficulty: Difficulty): number[] {
+export function randomSide(unit: Unit, difficulty: Difficulty, rng: Rng = Math.random): number[] {
   const g = plateGroups(unit);
   const plates: number[] = [];
 
   const maxBig = difficulty === "rookie" ? 3 : difficulty === "athlete" ? 4 : 5;
-  const nBig = Math.floor(Math.random() * (maxBig + 1));
+  const nBig = Math.floor(rng() * (maxBig + 1));
   for (let i = 0; i < nBig; i++) {
-    if (unit === "kg" && chance(0.32)) plates.push(2500);
+    if (unit === "kg" && chance(0.32, rng)) plates.push(2500);
     else plates.push(g.standardBig);
   }
 
-  if (chance(difficulty === "rookie" ? 0.42 : 0.5)) {
+  if (chance(difficulty === "rookie" ? 0.42 : 0.5, rng)) {
     if (unit === "lb" && difficulty === "rookie") plates.push(2500);
-    else plates.push(pick(g.mid));
+    else plates.push(pick(g.mid, rng));
   }
 
   const tenChance = difficulty === "rookie" ? 0.38 : difficulty === "athlete" ? 0.52 : 0.42;
-  if (chance(tenChance)) plates.push(g.ten);
+  if (chance(tenChance, rng)) plates.push(g.ten);
 
   const fiveChance = difficulty === "rookie" ? 0.3 : difficulty === "athlete" ? 0.52 : 0.72;
-  if (chance(fiveChance)) plates.push(g.five);
+  if (chance(fiveChance, rng)) plates.push(g.five);
 
-  const microChance =
-    difficulty === "rookie" ? 0.06 : difficulty === "athlete" ? 0.34 : 0.74;
-  if (chance(microChance)) {
+  const microChance = difficulty === "rookie" ? 0.06 : difficulty === "athlete" ? 0.34 : 0.74;
+  if (chance(microChance, rng)) {
     plates.push(g.micro[0]!);
-    if (g.micro[1] && difficulty !== "rookie" && chance(0.4)) plates.push(g.micro[1]);
+    if (g.micro[1] && difficulty !== "rookie" && chance(0.4, rng)) plates.push(g.micro[1]);
   }
 
   if ((difficulty === "coach" || difficulty === "elite") && !plates.some((c) => c <= g.five)) {
-    plates.push(chance(0.55) ? g.five : g.micro[0]!);
+    plates.push(chance(0.55, rng) ? g.five : g.micro[0]!);
   }
-  if (difficulty === "elite" && !plates.some((c) => g.micro.includes(c)) && chance(0.6)) {
+  if (difficulty === "elite" && !plates.some((c) => g.micro.includes(c)) && chance(0.6, rng)) {
     plates.push(g.micro[0]!);
   }
 
@@ -112,41 +115,41 @@ export function makeRound(opts: {
   shownPlates?: number[];
   trainerTitle?: string | null;
   hintChance?: number;
+  rng?: Rng;
 }): Round {
+  const rng = opts.rng ?? Math.random;
   const spec = specFor(opts.unit);
   let plates = opts.shownPlates?.slice() ?? [];
   if (!opts.shownPlates) {
-    plates = randomSide(opts.unit, opts.difficulty);
+    plates = randomSide(opts.unit, opts.difficulty, rng);
     let tries = 0;
     while (
       opts.avoidCents !== undefined &&
       barTotal(spec.barCents, plates) === opts.avoidCents &&
       tries++ < 12
     ) {
-      plates = randomSide(opts.unit, opts.difficulty);
+      plates = randomSide(opts.unit, opts.difficulty, rng);
     }
   }
   if (!platesAreValid(opts.unit, plates)) {
-    plates = randomSide(opts.unit, opts.difficulty);
+    plates = randomSide(opts.unit, opts.difficulty, rng);
   }
   const targetCents = barTotal(spec.barCents, plates);
-  const timedMs =
-    opts.mode === "speed" ? null : opts.difficulty === "elite" ? 12000 : null;
+  const timedMs = opts.mode === "speed" ? null : opts.difficulty === "elite" ? 12000 : null;
 
   let hint: string | null = null;
   const smallHint = smallPlateHint(opts.unit, plates);
-  const smallChance =
-    opts.difficulty === "rookie" ? 1 : opts.difficulty === "athlete" ? 0.4 : 0.14;
+  const smallChance = opts.difficulty === "rookie" ? 1 : opts.difficulty === "athlete" ? 0.4 : 0.14;
   const genericChance =
     opts.hintChance ??
     (opts.difficulty === "rookie" ? 0.4 : opts.difficulty === "athlete" ? 0.1 : 0);
 
-  if (opts.kind === "load" && smallHint && Math.random() < smallChance) {
+  if (opts.kind === "load" && smallHint && rng() < smallChance) {
     hint = smallHint;
-  } else if (opts.kind === "load" && genericChance > 0 && Math.random() < genericChance) {
+  } else if (opts.kind === "load" && genericChance > 0 && rng() < genericChance) {
     const big = spec.plates.find((p) => p.cents === spec.barCents) ?? spec.plates[0]!;
     hint = `Remember: adding one ${big.label} ${spec.suffix} plate means adding ${big.label} ${spec.suffix} to EACH SIDE = ${formatWeight(big.cents * 2)} ${spec.suffix} total.`;
-  } else if (opts.kind === "identify" && opts.difficulty === "rookie" && Math.random() < 0.4) {
+  } else if (opts.kind === "identify" && opts.difficulty === "rookie" && rng() < 0.4) {
     hint = `Count one side, double it, add the ${spec.barLabel} ${spec.suffix} bar.`;
   }
 

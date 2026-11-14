@@ -724,6 +724,33 @@
     -webkit-user-select: none;
   }
 
+  .anatomy-hitarea,
+  .skeleton-hitarea {
+    fill: transparent;
+    stroke: transparent;
+    stroke-width: 10;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    pointer-events: all;
+    cursor: pointer;
+  }
+
+  .skeleton-hitarea.is-narrow {
+    stroke-width: 16;
+  }
+
+  .anatomy-landmarks {
+    fill: none;
+    stroke: color-mix(in oklab, var(--color-fg) 28%, transparent);
+    stroke-width: 1.25;
+    stroke-linecap: round;
+  }
+
+  .anatomy-landmarks circle {
+    fill: color-mix(in oklab, var(--color-fg) 28%, transparent);
+    stroke: none;
+  }
+
   /* Blur + alpha-contrast rounds the hand-authored polygons into something
      closer to tissue. Pointer hit-testing still uses the raw geometry. */
   .lab-soft {
@@ -885,6 +912,19 @@
     stroke: none;
   }
 
+  .skeleton-landmarks {
+    fill: none;
+    stroke: color-mix(in oklab, var(--color-fg) 48%, var(--color-border));
+    stroke-width: 1.4;
+    stroke-linecap: round;
+    opacity: 0.72;
+  }
+
+  .skeleton-landmarks circle {
+    fill: color-mix(in oklab, var(--color-fg) 42%, var(--color-surface));
+    stroke: color-mix(in oklab, var(--color-fg) 58%, var(--color-border));
+  }
+
   .skeleton-svg.is-rookie .skeleton-bone {
     stroke-width: 6;
   }
@@ -935,6 +975,9 @@
     flex-direction: column;
     flex: 1 1 auto;
     min-height: 0;
+  }
+  .lab-shell {
+    min-height: 100svh;
   }
   .lab-figure-col {
     flex: 1 1 auto;
@@ -1014,9 +1057,68 @@
   }
   .lab-figure-spin {
     height: 100%;
+    width: 100%;
+    min-height: 0;
     display: flex;
     align-items: center;
     justify-content: center;
+  }
+
+  @media (max-width: 640px) {
+    .lab-board {
+      margin-top: 0.55rem;
+    }
+    .lab-copy {
+      flex: 0 0 auto;
+    }
+    .lab-prompt {
+      margin-top: 0.35rem;
+      font-size: clamp(1.05rem, 5vw, 1.25rem);
+      line-height: 1.12;
+    }
+    .lab-figure-col {
+      margin-top: 0.2rem;
+    }
+    .lab-stage {
+      width: 100%;
+      min-height: 0;
+    }
+    .lab-caption {
+      inset-inline: 0.25rem;
+      padding: 0.55rem 0.7rem;
+    }
+    .lab-choice {
+      min-height: 3rem;
+    }
+  }
+
+  @media (max-height: 720px) and (max-width: 640px) {
+    .lab-shell > header {
+      min-height: 2.5rem;
+    }
+    .lab-shell > header + div {
+      margin-top: 0.4rem;
+    }
+    .lab-board {
+      margin-top: 0.3rem;
+    }
+    .lab-hud {
+      font-size: 0.62rem;
+    }
+    .lab-prompt {
+      margin-top: 0.2rem;
+      font-size: 1rem;
+    }
+    .lab-copy > p + p {
+      margin-top: 0;
+      font-size: 0.6rem;
+    }
+    .lab-caption-body {
+      -webkit-line-clamp: 1;
+    }
+    .lab-aside {
+      margin-top: 0.25rem;
+    }
   }
 
   /* Caption strip pinned over the bottom of the stage */
