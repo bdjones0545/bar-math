@@ -1,0 +1,3 @@
+No sign-in is required. Launch the app and tap any training mode. The app loads its production experience from https://bar-math.vercel.app and requires a network connection for leaderboard features. Core plate-math training and local progress do not require an account.
+
+Version 1.1 (3) is a maintenance rebuild with no new features. It loads the same production experience from https://bar-math.vercel.app as 1.0.
